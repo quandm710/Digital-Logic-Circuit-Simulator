@@ -14,7 +14,7 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
     setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable);
 
     // Nhãn tên cổng
-    QString name = (type == AND) ? "AND" : (type == OR) ? "OR" : "NOT";
+    QString name = (type == NOT) ? "NOT" : (type == AND) ? "AND" : (type == OR) ? "OR" : (type == NAND) ? "NAND" : (type == NOR) ? "NOR" : (type == EXOR) ? "EXOR" : "EXNOR";
     auto text = new QGraphicsTextItem(name, this);
     text->setPos(20, 15);
 

@@ -34,9 +34,9 @@ void MainWindow::setupComponentList() {
     ui->componentList->addItem("OR Gate");
     ui->componentList->addItem("NAND Gate");
     ui->componentList->addItem("NOR Gate");
-    ui->componentList->addItem("NOT Gate");
     ui->componentList->addItem("EXOR Gate");
     ui->componentList->addItem("EXNOR Gate");
+    ui->componentList->addItem("NOT Gate");
 }
 
 void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
@@ -50,19 +50,12 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
     else if (text == "NOR Gate") type = LogicGateItem::NOR;
     else if (text == "EXOR Gate") type = LogicGateItem::EXOR;
     else if (text == "EXNOR Gate") type = LogicGateItem::EXNOR;
-    else type = LogicGateItem::NOT;
+    else if (text == "NOT Gate") type = LogicGateItem::NOT;
 
     // Tạo cổng ngay lập tức khi nhấn (trước khi drag)
     auto gate = new LogicGateItem(type);
     gate->setPos(50, 50);
     scene->addItem(gate);
-
-    // Sau đó mới thực hiện Drag & Drop nếu cần
-    QDrag *drag = new QDrag(this);
-    QMimeData *mimeData = new QMimeData;
-    mimeData->setText(text);
-    drag->setMimeData(mimeData);
-    drag->exec();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {

@@ -20,4 +20,6 @@ public:
 
 // Người 2 & 3 sẽ tiếp tục viết OrGate, NotGate... ở đây
 
+
+
 #endif // LOGICCORE_H
