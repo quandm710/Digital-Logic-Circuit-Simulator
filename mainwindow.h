@@ -3,6 +3,7 @@
 #include <QGraphicsScene>
 #include <QMainWindow>
 #include <QListWidgetItem>
+#include <QKeyEvent>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -19,13 +20,24 @@ public:
     ~MainWindow() override;
 
 public slots:
-    void on_btnAddAnd_clicked();
-    void on_componentList_itemPressed(QListWidgetItem *item);
     void keyPressEvent(QKeyEvent *event);
+    void on_componentList_itemPressed(QListWidgetItem *item);
+
+private slots:
+    void on_actionNew_triggered();
+
+    void on_actionOpen_triggered();
+
+    void on_actionSave_triggered();
+
+    void on_actionRun_triggered();
+
+    void on_actionStop_triggered();
+
+    void on_actionConfig_triggered();
 
 private:
     void setupComponentList(); // Hàm bổ trợ
-private:
     Ui::MainWindow *ui;
     QGraphicsScene *scene;
 };

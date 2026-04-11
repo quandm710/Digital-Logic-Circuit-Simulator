@@ -1,7 +1,7 @@
 #ifndef WIRE_H
 #define WIRE_H
 #include <QGraphicsPathItem>
-#include "LogicGateItem.h"
+#include "logicgateitem.h"
 
 class Wire : public QGraphicsPathItem {
 public:

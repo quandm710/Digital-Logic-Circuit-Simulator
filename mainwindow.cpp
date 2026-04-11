@@ -1,76 +1,133 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "logicgateitem.h"
-#include <QDrag>
-#include <QMimeData>
-#include <QMouseEvent>
-#include <QKeyEvent>
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
-{
-    ui->setupUi(this);
-    this->setFocusPolicy(Qt::StrongFocus);
+#include <QColorDialog>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QDebug>
+#include <QPoint>
+#include <QPointF>
 
-    // Tạo Scene (Không gian chứa vật thể)
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent), ui(new Ui::MainWindow) {
+    ui->setupUi(this);
+
     scene = new QGraphicsScene(this);
+    scene->setSceneRect(-1000, -1000, 2000, 2000);
+
     ui->graphicsView->setScene(scene);
-    ui->graphicsView->setRenderHint(QPainter::Antialiasing); // Làm mượt nét vẽ
+    // Khử răng cưa và tối ưu hóa vẽ
+    ui->graphicsView->setRenderHint(QPainter::Antialiasing);
+    ui->graphicsView->setRenderHint(QPainter::TextAntialiasing);
+    ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    // Giúp việc kéo thả mượt hơn
+    ui->graphicsView->setOptimizationFlag(QGraphicsView::IndirectPainting);
+
+    scene->setBackgroundBrush(QBrush(QColor(245, 245, 245)));
     setupComponentList();
 }
 
-// Hàm xử lý khi nhấn nút thêm cổng AND trên UI
-void MainWindow::on_btnAddAnd_clicked() {
-    auto gate = new LogicGateItem(LogicGateItem::AND);
-    gate->setPos(50, 50); // Vị trí mặc định khi mới tạo
-    if (scene) {
-        scene->addItem(gate);
-        scene->update();
-    }
-}
+MainWindow::~MainWindow() { delete ui; }
 
 void MainWindow::setupComponentList() {
-    ui->componentList->addItem("AND Gate");
-    ui->componentList->addItem("OR Gate");
-    ui->componentList->addItem("NAND Gate");
-    ui->componentList->addItem("NOR Gate");
-    ui->componentList->addItem("EXOR Gate");
-    ui->componentList->addItem("EXNOR Gate");
-    ui->componentList->addItem("NOT Gate");
+    QStringList gates = {"AND Gate", "OR Gate", "NAND Gate", "NOR Gate", "EXOR Gate", "EXNOR Gate", "NOT Gate"};
+    ui->componentList->addItems(gates);
 }
 
 void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
+    QString text = item->text();
     LogicGateItem::GateType type;
-    QString text = item->text(); // Lấy tên cổng
 
-    // Kiểm tra chính xác tên đã add trong setupComponentList
     if (text == "AND Gate") type = LogicGateItem::AND;
     else if (text == "OR Gate") type = LogicGateItem::OR;
     else if (text == "NAND Gate") type = LogicGateItem::NAND;
     else if (text == "NOR Gate") type = LogicGateItem::NOR;
     else if (text == "EXOR Gate") type = LogicGateItem::EXOR;
     else if (text == "EXNOR Gate") type = LogicGateItem::EXNOR;
-    else if (text == "NOT Gate") type = LogicGateItem::NOT;
+    else type = LogicGateItem::NOT;
 
-    // Tạo cổng ngay lập tức khi nhấn (trước khi drag)
-    auto gate = new LogicGateItem(type);
-    gate->setPos(50, 50);
-    scene->addItem(gate);
+    try {
+        auto gate = new LogicGateItem(type);
+        gate->setPos(0,0); // Tạo tại tâm tọa độ hoặc vị trí mong muốn
+        scene->addItem(gate);
+        scene->clearSelection();
+        gate->setSelected(true);
+        scene->update();
+    } catch (...) {
+        qDebug() << "Lỗi khi tạo cổng logic!";
+    }
 }
 
+// Chức năng xóa cổng bằng bàn phím
 void MainWindow::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
-        // Lấy danh sách các cổng đang được chọn trên Workspace
-        QList<QGraphicsItem*> selectedItems = scene->selectedItems();
-        for (QGraphicsItem* item : selectedItems) {
+        QList<QGraphicsItem*> selected = scene->selectedItems();
+        for (QGraphicsItem* item : selected) {
             scene->removeItem(item);
-            delete item; // Giải phóng bộ nhớ
+            delete item;
         }
     }
     QMainWindow::keyPressEvent(event);
 }
 
-MainWindow::~MainWindow()
-{
-    delete ui;
+// --- FILE MENU ---
+void MainWindow::on_actionNew_triggered() {
+    scene->clear();
+}
+
+void MainWindow::on_actionOpen_triggered() {
+    QString fileName = QFileDialog::getOpenFileName(this, "Open Circuit", "", "*.logic");
+    if (fileName.isEmpty()) return;
+    QFile file(fileName);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QStringList tokens = in.readLine().split(" ");
+            if (tokens[0] == "GATE") {
+                auto gate = new LogicGateItem((LogicGateItem::GateType)tokens[1].toInt());
+                gate->setPos(tokens[2].toDouble(), tokens[3].toDouble());
+                scene->addItem(gate);
+            }
+        }
+        file.close();
+    }
+}
+
+void MainWindow::on_actionSave_triggered() {
+    QString fileName = QFileDialog::getSaveFileName(this, "Save Circuit", "", "*.logic");
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        // Người 4: Duyệt qua các item để lưu tọa độ
+        for (QGraphicsItem* item : scene->items()) {
+            LogicGateItem* gate = dynamic_cast<LogicGateItem*>(item);
+            if (gate) {
+                out << "GATE " << gate->getGateType() << " "
+                    << gate->x() << " " << gate->y() << "\n";
+            }
+        }
+        file.close();
+    }
+}
+
+// --- CONFIG ---
+void MainWindow::on_actionConfig_triggered() {
+    QColor color = QColorDialog::getColor(Qt::white, this);
+    if (color.isValid()) scene->setBackgroundBrush(color);
+}
+
+// --- SIMULATION ---
+void MainWindow::on_actionRun_triggered() {
+    // Đổi màu nền sang xanh nhẹ để báo hiệu đang chạy
+    scene->setBackgroundBrush(QBrush(QColor(240, 255, 240)));
+    ui->statusbar->showMessage("Simulation is running...");
+    // Gọi thread mô phỏng của bạn ở đây
+}
+
+void MainWindow::on_actionStop_triggered() {
+    // Trả lại màu nền cũ
+    scene->setBackgroundBrush(QBrush(Qt::white));
+    ui->statusbar->showMessage("Simulation stopped.");
 }
