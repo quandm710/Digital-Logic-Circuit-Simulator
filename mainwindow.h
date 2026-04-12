@@ -18,6 +18,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
+    bool getWiringMode() { return isWiringMode; }
 
 public slots:
     void keyPressEvent(QKeyEvent *event);
@@ -37,6 +38,7 @@ private slots:
     void on_actionConfig_triggered();
 
 private:
+    bool isWiringMode = false;
     void setupComponentList(); // Hàm bổ trợ
     Ui::MainWindow *ui;
     QGraphicsScene *scene;

@@ -48,7 +48,7 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
 
     try {
         auto gate = new LogicGateItem(type);
-        gate->setPos(0,0); // Tạo tại tâm tọa độ hoặc vị trí mong muốn
+        gate->setPos(0,0); // Tạo tại tâm tọa độ
         scene->addItem(gate);
         scene->clearSelection();
         gate->setSelected(true);
@@ -58,8 +58,18 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
     }
 }
 
-// Chức năng xóa cổng bằng bàn phím
 void MainWindow::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_W) {
+        isWiringMode = !isWiringMode; // Đảo trạng thái
+
+        if (isWiringMode) {
+            ui->statusbar->showMessage("Chế độ: NỐI DÂY (Nhấn W để tắt)", 2000);
+            setCursor(Qt::CrossCursor); // Đổi chuột thành hình chữ thập
+        } else {
+            ui->statusbar->showMessage("Chế độ: TƯƠNG TÁC (Nhấn W để nối dây)", 2000);
+            setCursor(Qt::ArrowCursor); // Trở về chuột bình thường
+        }
+    }
     if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
         QList<QGraphicsItem*> selected = scene->selectedItems();
         for (QGraphicsItem* item : selected) {

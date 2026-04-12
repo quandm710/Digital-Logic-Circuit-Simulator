@@ -1,11 +1,13 @@
 #include "logicgateitem.h"
-#include <QFont>
+#include "mainwindow.h"  // Sửa lỗi 'MainWindow' was not declared
+#include "wire.h"        // Sửa lỗi invalid use of incomplete type 'class WireItem'
+#include <QGraphicsView> // Sửa lỗi invalid use of incomplete type 'class QGraphicsView'
 #include <QGraphicsScene>
+#include <QGraphicsSceneMouseEvent>
 
 LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
     : QGraphicsRectItem(parent), m_type(type)
 {
-    // Người 1: Thiết kế hình dáng cổng
     setRect(0, 0, 80, 50);
     setBrush(QBrush(QColor(230, 240, 250)));
     setPen(QPen(Qt::black, 2));
@@ -50,7 +52,50 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
 
 QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value) {
     if (change == ItemPositionHasChanged) {
-        scene()->update(); // Cập nhật lại toàn bộ màn hình khi di chuyển
+        // Bảo tất cả các chân Pin cập nhật lại vị trí dây nối
+        for (auto pin : m_inputs) pin->updateConnectedWires();
+        if (m_output) m_output->updateConnectedWires();
     }
     return QGraphicsRectItem::itemChange(change, value);
+}
+void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+    // Lấy trạng thái từ MainWindow
+    MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+    bool wiring = mainWin ? mainWin->getWiringMode() : false;
+
+    if (wiring) {
+        // --- LOGIC NỐI DÂY ---
+        // Bắt đầu tạo dây nối tạm thời (Preview)
+        m_tempWire = new QGraphicsLineItem();
+        m_tempWire->setPen(QPen(Qt::blue, 1, Qt::DashLine));
+        scene()->addItem(m_tempWire);
+    } else {
+        // --- LOGIC ĐỔI TÍN HIỆU 0/1 ---
+        if (m_isInput) {
+            setValue(!m_value);
+            if (auto gate = dynamic_cast<LogicGateItem*>(parentItem())) {
+                gate->compute();
+            }
+        }
+    }
+    QGraphicsEllipseItem::mousePressEvent(event);
+}
+void PinItem::updateConnectedWires() {
+    for (WireItem* wire : m_connectedWires) {
+        wire->updatePosition();
+    }
+}
+void PinItem::notifyWires() {
+    for (auto wire : m_connectedWires) {
+        if (wire) wire->transmit();
+    }
+}
+void PinItem::setValue(bool v) {
+    m_value = v;
+    // Đổi màu: Đỏ là mức 1, Trắng là mức 0
+    setBrush(v ? Qt::red : Qt::white);
+    update();
+
+    // Sau khi giá trị thay đổi, thông báo cho các dây nối để truyền đi
+    notifyWires();
 }

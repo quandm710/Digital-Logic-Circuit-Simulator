@@ -33,6 +33,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         wire.h
         simulationThread.h
         logicgateitem.cpp
+        wire.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET DigitalLogicCircuitSimulato-UTC2 APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
