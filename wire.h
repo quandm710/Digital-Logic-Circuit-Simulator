@@ -10,7 +10,6 @@ public:
         setPen(QPen(Qt::darkGreen, 2));
         updatePath();
     }
-
     // RAII: Khi Wire bị xóa, các tham chiếu liên quan phải được dọn dẹp
     void updatePath() {
         QPainterPath path;

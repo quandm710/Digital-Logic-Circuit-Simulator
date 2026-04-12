@@ -1,9 +1,11 @@
 #include "logicgateitem.h"
+#include "logicCore.h"
 #include "mainwindow.h"  // Sửa lỗi 'MainWindow' was not declared
 #include "wire.h"        // Sửa lỗi invalid use of incomplete type 'class WireItem'
 #include <QGraphicsView> // Sửa lỗi invalid use of incomplete type 'class QGraphicsView'
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
+#include<memory>
 
 LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
     : QGraphicsRectItem(parent), m_type(type)
@@ -16,13 +18,34 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
     // Hiển thị tên cổng tương ứng
     QString name;
     switch (type) {
-    case AND:   name = "AND"; break;
-    case OR:    name = "OR";  break;
-    case NAND:  name = "NAND";break;
-    case NOR:   name = "NOR"; break;
-    case EXOR:  name = "EXOR"; break;
-    case EXNOR: name = "EXNOR";break;
-    case NOT:   name = "NOT"; break;
+    case LogicGateItem::AND:
+        name = "AND";
+        m_core = std::make_unique<AndGate>(); // Kết nối logic cổng AND
+        break;
+    case LogicGateItem::OR:
+        name = "OR";
+        m_core = std::make_unique<OrGate>();  // Kết nối logic cổng OR
+        break;
+    case LogicGateItem::NAND:
+        name = "NAND";
+        m_core = std::make_unique<NandGate>();
+        break;
+    case LogicGateItem::NOR:
+        name = "NOR";
+        m_core = std::make_unique<NorGate>();
+        break;
+    case LogicGateItem::EXOR:
+        name = "EXOR";
+        m_core = std::make_unique<ExorGate>();
+        break;
+    case LogicGateItem::EXNOR:
+        name = "EXNOR";
+        m_core = std::make_unique<ExnorGate>();
+        break;
+    case LogicGateItem::NOT:
+        name = "NOT";
+        m_core = std::make_unique<NotGate>();
+        break;
     }
 
     auto text = new QGraphicsTextItem(name, this);
@@ -48,6 +71,24 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
 
     m_output = new PinItem(false, this);
     m_output->setPos(80, 25);
+}
+void LogicGateItem::compute() {
+    // 1. Kiểm tra an toàn: nếu chưa có bộ não hoặc chân cắm thì bỏ qua
+    if (!m_core || m_inputs.empty()) return;
+
+    // 2. Thu thập giá trị 0/1 (true/false) từ các chân Pin đầu vào
+    std::vector<bool> inputValues;
+    for (PinItem* pin : m_inputs) {
+        inputValues.push_back(pin->value());
+    }
+
+    // 3. Gọi hàm compute của m_core để tính toán dựa trên quy tắc logic
+    bool result = m_core->compute(inputValues);
+
+    // 4. Cập nhật kết quả ra chân đầu ra (m_output)
+    if (m_output) {
+        m_output->setValue(result); // Chân đầu ra sẽ đổi màu nếu kết quả thay đổi
+    }
 }
 
 QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value) {
@@ -98,4 +139,11 @@ void PinItem::setValue(bool v) {
 
     // Sau khi giá trị thay đổi, thông báo cho các dây nối để truyền đi
     notifyWires();
+}
+void PinItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
+    QGraphicsEllipseItem::mouseMoveEvent(event);
+}
+
+void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+    QGraphicsEllipseItem::mouseReleaseEvent(event);
 }

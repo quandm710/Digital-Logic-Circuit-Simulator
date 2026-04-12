@@ -9,7 +9,7 @@
 #include <QBrush>
 #include <QPen>
 #include <vector>
-
+class LogicGate;
 class WireItem;
 // Chân cắm (Người 4 dùng để nối dây)
 class PinItem : public QGraphicsEllipseItem {
@@ -52,9 +52,12 @@ protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
 private:
+    std::unique_ptr<LogicGate> m_core; // Dòng này cực kỳ quan trọng
     GateType m_type;
     std::vector<PinItem*> m_inputs;
     PinItem* m_output;
 };
+
+
 
 #endif
