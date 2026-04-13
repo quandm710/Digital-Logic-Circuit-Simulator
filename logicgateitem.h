@@ -15,18 +15,36 @@ class WireItem;
 // Chân cắm (Người 4 dùng để nối dây)
 class PinItem : public QGraphicsEllipseItem {
 public:
-    PinItem(bool isInput, QGraphicsItem* parent = nullptr)
-        : QGraphicsEllipseItem(-4, -4, 8, 8, parent), m_isInput(isInput) {
+    PinItem(bool isInput, QGraphicsItem* parent)
+        : QGraphicsEllipseItem(-6, -6, 12, 12, parent), m_isInput(isInput)
+    {
+        // 1. Hình dáng: Tăng kích thước từ 8 lên 12 để dễ "bắt" dây hơn
         setBrush(Qt::white);
-        setPen(QPen(Qt::black, 1));
+        setPen(QPen(Qt::black, 1.5));
 
+        // 2. Độ cao hiển thị (Quan trọng nhất để không bị Gate che khuất)
+        setZValue(10);
+
+        // 3. Quyền tương tác: Cho phép chọn và nhận thông báo thay đổi tọa độ
+        setFlag(QGraphicsItem::ItemIsSelectable, true);
+        setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
+
+        // Chỉ định rõ ràng Pin này nhận chuột trái để kích hoạt mousePressEvent
+        setAcceptedMouseButtons(Qt::LeftButton);
+
+        // 4. Thiết lập nhãn hiển thị 0/1
         m_label = new QGraphicsTextItem("0", this);
-        // Thiết lập font chữ nhỏ, đậm để hiện rõ số 0/1
-        QFont font("Arial", 7, QFont::Bold);
+        QFont font("Arial", 8, QFont::Bold);
         m_label->setFont(font);
         m_label->setDefaultTextColor(Qt::black);
 
-        // Căn chỉnh chữ vào chính giữa vòng tròn chân Pin
+        // QUAN TRỌNG: Cho phép chuột "xuyên qua" nhãn số để chạm vào vòng tròn Pin bên dưới
+        m_label->setAcceptedMouseButtons(Qt::NoButton);
+
+        // Đặt nhãn nằm trên Pin một chút để luôn nhìn thấy số
+        m_label->setZValue(11);
+
+        // 5. Căn giữa nhãn vào vòng tròn
         centerLabel();
     }
     void centerLabel() {
