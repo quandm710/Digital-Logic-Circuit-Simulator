@@ -59,7 +59,7 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_W) {
+    if (event->key() == Qt::Key_W || event->text().toLower() == "w" || event->text() == "ư") {
         isWiringMode = !isWiringMode; // Đảo trạng thái
 
         if (isWiringMode) {

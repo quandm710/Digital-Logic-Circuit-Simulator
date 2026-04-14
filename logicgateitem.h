@@ -26,7 +26,6 @@ public:
         setZValue(10);
 
         // 3. Quyền tương tác: Cho phép chọn và nhận thông báo thay đổi tọa độ
-        setFlag(QGraphicsItem::ItemIsSelectable, true);
         setFlag(QGraphicsItem::ItemSendsGeometryChanges, true);
 
         // Chỉ định rõ ràng Pin này nhận chuột trái để kích hoạt mousePressEvent
@@ -53,9 +52,11 @@ public:
             m_label->setPos(-textRect.width() / 2, -textRect.height() / 2);
         }
     }
+    std::vector<WireItem*> getConnectedWires() const { return m_connectedWires; }
     void updateConnectedWires();
     bool isInput() const { return m_isInput; }
     void addWire(WireItem* wire) { m_connectedWires.push_back(wire); }
+    void removeWire(WireItem* wire);
     void notifyWires();
     void setValue(bool v);
     bool value() const { return m_value; }
@@ -70,7 +71,6 @@ private:
     QPointF m_dragStartPosition;
     QGraphicsLineItem* m_tempWire = nullptr;
     QGraphicsTextItem* m_label = nullptr; // Nhãn hiển thị 0/1
-
 };
 
 // Cổng Logic (Người 1 vẽ - Người 2&3 xử lý logic)
@@ -78,10 +78,11 @@ class LogicGateItem : public QGraphicsRectItem {
 public:
     enum GateType { AND, OR, NAND, NOR, EXOR, EXNOR, NOT };
     LogicGateItem(GateType type, QGraphicsItem* parent = nullptr);
-
+    ~LogicGateItem();
     GateType getGateType() const { return m_type; }
 
     void compute();
+    void deleteWireOfPin(PinItem* pin);
 
 protected:
     // Tự động cập nhật khi di chuyển (Người 4)

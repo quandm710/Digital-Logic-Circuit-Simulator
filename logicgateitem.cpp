@@ -6,10 +6,8 @@
 #include <QGraphicsScene>
 #include <QGraphicsSceneMouseEvent>
 #include<memory>
-
-LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
-    : QGraphicsRectItem(parent), m_type(type)
-{
+// Constructor của LogicGateItem
+LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent) : QGraphicsRectItem(parent), m_type(type) {
     setRect(0, 0, 80, 50);
     setBrush(QBrush(QColor(230, 240, 250)));
     setPen(QPen(Qt::black, 2));
@@ -72,6 +70,20 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent)
     m_output = new PinItem(false, this);
     m_output->setPos(80, 25);
 }
+// Destructor của LogicGateItem
+LogicGateItem::~LogicGateItem() {
+    // Lấy tất cả Pin của cổng này
+    for (auto pin : m_inputs) deleteWireOfPin(pin);
+    deleteWireOfPin(m_output);
+}
+QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value) {
+    if (change == ItemPositionHasChanged) {
+        // Mỗi khi cổng di chuyển, bảo các chân Pin hãy kéo dây theo
+        for (auto pin : m_inputs) pin->updateConnectedWires();
+        if (m_output) m_output->updateConnectedWires();
+    }
+    return QGraphicsRectItem::itemChange(change, value);
+}
 void LogicGateItem::compute() {
     // 1. Kiểm tra an toàn: nếu chưa có bộ não hoặc chân cắm thì bỏ qua
     if (!m_core || m_inputs.empty()) return;
@@ -90,39 +102,6 @@ void LogicGateItem::compute() {
         m_output->setValue(result); // Chân đầu ra sẽ đổi màu nếu kết quả thay đổi
     }
 }
-
-QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value) {
-    if (change == ItemPositionHasChanged) {
-        // Mỗi khi cổng di chuyển, bảo các chân Pin hãy kéo dây theo
-        for (auto pin : m_inputs) pin->updateConnectedWires();
-        if (m_output) m_output->updateConnectedWires();
-    }
-    return QGraphicsRectItem::itemChange(change, value);
-}
-void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
-    // Nếu chuột phải: đảo tín hiệu 0/1 cho pin input
-    if (event->button() == Qt::RightButton && m_isInput) {
-        setValue(!m_value); // đảo giá trị
-        event->accept();
-        return;
-    }
-
-    // Nếu chuột trái: kéo dây như cũ
-    if (event->button() != Qt::LeftButton) {
-        event->ignore();
-        return;
-    }
-
-    m_dragStartPosition = event->scenePos();
-    m_tempWire = new QGraphicsLineItem(QLineF(m_dragStartPosition, m_dragStartPosition));
-
-    QPen pen(Qt::black, 1, Qt::DashLine);
-    m_tempWire->setPen(pen);
-    scene()->addItem(m_tempWire);
-
-    grabMouse();
-    event->accept();
-}
 void PinItem::updateConnectedWires() {
     for (WireItem* wire : m_connectedWires) {
         if (wire) wire->updatePosition();
@@ -131,6 +110,28 @@ void PinItem::updateConnectedWires() {
 void PinItem::notifyWires() {
     for (auto wire : m_connectedWires) {
         if (wire) wire->transmit();
+    }
+}
+void LogicGateItem::deleteWireOfPin(PinItem* pin) {
+    if (!pin) return;
+
+    // Lấy danh sách dây thông qua hàm getter vừa tạo
+    std::vector<WireItem*> wires = pin->getConnectedWires();
+
+    for (WireItem* wire : wires) {
+        if (wire) {
+            // Xóa dây khỏi Scene trước khi delete
+            if (scene()) {
+                scene()->removeItem(wire);
+            }
+            delete wire;
+        }
+    }
+}
+void PinItem::removeWire(WireItem* wire) {
+    auto it = std::find(m_connectedWires.begin(), m_connectedWires.end(), wire);
+    if (it != m_connectedWires.end()) {
+        m_connectedWires.erase(it);
     }
 }
 void PinItem::setValue(bool v) {
@@ -150,8 +151,43 @@ void PinItem::setValue(bool v) {
 }
 void PinItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     if (m_tempWire) {
-        // Cập nhật đường kẻ từ tâm Pin đến vị trí chuột hiện tại
+    // Cập nhật đường kẻ từ tâm Pin đến vị trí chuột hiện tại
         m_tempWire->setLine(QLineF(this->scenePos(), event->scenePos()));
+    }
+}
+void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+    // Lấy trạng thái mode từ MainWindow
+    MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+    bool wiringMode = mainWin ? mainWin->getWiringMode() : false;
+
+    // Chuột trái
+    if (event->button() == Qt::LeftButton) {
+            // Chế độ nối dây
+        if (wiringMode) {
+            m_dragStartPosition = scenePos(); // Lấy tâm của Pin làm điểm bắt đầu
+            m_tempWire = new QGraphicsLineItem(QLineF(m_dragStartPosition, m_dragStartPosition));
+
+            QPen pen(Qt::blue, 1, Qt::DashLine); // Dây tạm màu xanh nét đứt
+            m_tempWire->setPen(pen);
+            scene()->addItem(m_tempWire);
+
+            grabMouse();
+            event->accept();
+        }   // Chế độ tương tác
+        else {
+            if (m_isInput) {
+                setValue(!m_value); // Đảo giá trị 0/1
+                // Cập nhật logic cho cổng cha ngay lập tức
+                LogicGateItem* parentGate = dynamic_cast<LogicGateItem*>(parentItem());
+                if (parentGate) {
+                    parentGate->compute();
+                }
+            }
+            event->accept();
+        }
+    } else {
+        // Nếu nhấn chuột phải hoặc nút khác: bỏ qua để tránh gây xung đột
+        event->ignore();
     }
 }
 void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
@@ -177,16 +213,26 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
             if (targetPin && targetPin != this) {
                 // Chỉ cần khác gate, không quan trọng input/output
                 if (targetPin->parentItem() != this->parentItem()) {
+                    bool exists = false;
+                    for (auto w : m_connectedWires) {
+                        // Nếu dây đã nối tới targetPin thì bỏ qua
+                        if (w->getStartPin() == targetPin || w->getEndPin() == targetPin) {
+                            exists = true;
+                            break;
+                        }
+                    }
                     // Tạo dây chính thức
-                    WireItem* wire = new WireItem(this, targetPin);
-                    scene()->addItem(wire);
+                    if (!exists && targetPin->parentItem() != this->parentItem()) {
+                        WireItem* wire = new WireItem(this, targetPin);
+                        scene()->addItem(wire);
 
-                    this->addWire(wire);
-                    targetPin->addWire(wire);
+                        this->addWire(wire);
+                        targetPin->addWire(wire);
 
-                    wire->updatePosition();
-                    wire->transmit();
-                    break; // kết nối xong thì thoát vòng lặp
+                        wire->updatePosition();
+                        wire->transmit();
+                        break; // kết nối xong thì thoát vòng lặp
+                    }
                 }
             }
         }
