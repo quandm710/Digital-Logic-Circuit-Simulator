@@ -1,33 +1,21 @@
 #ifndef WIRE_H
 #define WIRE_H
+
 #include <QGraphicsPathItem>
-#include "logicgateitem.h"
+#include <QPen>
 
-class PinItem;
-class Wire : public QGraphicsPathItem {
-public:
-    Wire(PinItem* start, PinItem* end) : m_start(start), m_end(end) {
-        setPen(QPen(Qt::darkGreen, 2));
-        updatePath();
-    }
-    // RAII: Khi Wire bị xóa, các tham chiếu liên quan phải được dọn dẹp
-    void updatePath() {
-        QPainterPath path;
-        path.moveTo(m_start->scenePos());
-        path.lineTo(m_end->scenePos());
-        setPath(path);
-    }
+class PinItem; // Khai báo trước để trình biên dịch không lỗi
 
-private:
-    PinItem *m_start, *m_end;
-};
-class WireItem : public QGraphicsLineItem {
+class WireItem : public QGraphicsPathItem {
 public:
     WireItem(PinItem* start, PinItem* end, QGraphicsItem* parent = nullptr);
-    void updatePosition(); // Cập nhật khi cổng di chuyển
-    void transmit();       // Truyền giá trị từ start sang end
+
+    void updatePosition(); // Hàm then chốt: Để dây tự hít vào Pin
+    void transmit();       // Hàm then chốt: Để truyền điện từ 0 sang 1
+
 private:
     PinItem *m_startPin;
     PinItem *m_endPin;
 };
+
 #endif // WIRE_H

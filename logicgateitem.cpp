@@ -93,34 +93,39 @@ void LogicGateItem::compute() {
 
 QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value) {
     if (change == ItemPositionHasChanged) {
-        // Bảo tất cả các chân Pin cập nhật lại vị trí dây nối
+        // Mỗi khi cổng di chuyển, bảo các chân Pin hãy kéo dây theo
         for (auto pin : m_inputs) pin->updateConnectedWires();
         if (m_output) m_output->updateConnectedWires();
     }
     return QGraphicsRectItem::itemChange(change, value);
 }
 void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
-    // Đổi giá trị nếu là chân Input
-    if (m_isInput) {
-        setValue(!m_value);
-        if (auto gate = dynamic_cast<LogicGateItem*>(parentItem())) {
-            gate->compute();
-        }
+    // Nếu chuột phải: đảo tín hiệu 0/1 cho pin input
+    if (event->button() == Qt::RightButton && m_isInput) {
+        setValue(!m_value); // đảo giá trị
+        event->accept();
+        return;
     }
 
-    // Tạo dây tạm với ZValue thấp để không đè lên các Pin khác
-    m_tempWire = new QGraphicsLineItem();
-    m_tempWire->setPen(QPen(Qt::blue, 1, Qt::DashLine));
-    m_tempWire->setLine(QLineF(scenePos(), event->scenePos()));
-    m_tempWire->setZValue(-1); // Cho nằm dưới các cổng
+    // Nếu chuột trái: kéo dây như cũ
+    if (event->button() != Qt::LeftButton) {
+        event->ignore();
+        return;
+    }
+
+    m_dragStartPosition = event->scenePos();
+    m_tempWire = new QGraphicsLineItem(QLineF(m_dragStartPosition, m_dragStartPosition));
+
+    QPen pen(Qt::black, 1, Qt::DashLine);
+    m_tempWire->setPen(pen);
     scene()->addItem(m_tempWire);
 
-    this->grabMouse();
+    grabMouse();
     event->accept();
 }
 void PinItem::updateConnectedWires() {
     for (WireItem* wire : m_connectedWires) {
-        wire->updatePosition();
+        if (wire) wire->updatePosition();
     }
 }
 void PinItem::notifyWires() {
@@ -129,73 +134,62 @@ void PinItem::notifyWires() {
     }
 }
 void PinItem::setValue(bool v) {
+    if (m_value == v) return; // tránh vòng lặp vô hạn
     m_value = v;
+
     setBrush(v ? Qt::red : Qt::white);
-    if (m_label) {
-        m_label->setPlainText(v ? "1" : "0");
-        m_label->setDefaultTextColor(v ? Qt::white : Qt::black);
-        centerLabel();
-    }
+    if (m_label) m_label->setPlainText(v ? "1" : "0");
 
-    // Nếu là chân Output, phải báo cho các dây đang nối với nó truyền tin đi
-    if (!m_isInput) {
-        notifyWires();
+    if (m_isInput) {
+        if (auto gate = dynamic_cast<LogicGateItem*>(parentItem())) {
+            gate->compute();
+        }
+    } else {
+        notifyWires(); // truyền tín hiệu qua dây
     }
-
-    update(); // Bắt buộc phải có để cập nhật giao diện
 }
 void PinItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     if (m_tempWire) {
-        // Cập nhật điểm kết thúc của dây tạm thời theo vị trí chuột
-        m_tempWire->setLine(QLineF(scenePos(), event->scenePos()));
-        event->accept();
-    } else {
-        QGraphicsEllipseItem::mouseMoveEvent(event);
+        // Cập nhật đường kẻ từ tâm Pin đến vị trí chuột hiện tại
+        m_tempWire->setLine(QLineF(this->scenePos(), event->scenePos()));
     }
 }
-
 void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+    if (event->button() != Qt::LeftButton) {
+        QGraphicsEllipseItem::mouseReleaseEvent(event);
+        return;
+    }
+
     ungrabMouse();
 
     if (m_tempWire) {
-        m_tempWire->hide(); // Ẩn dây tạm để không tự quét trúng nó
-
-        // CÁCH SỬA: Tạo vùng quét 16x16 pixel xung quanh điểm nhả chuột
-        // Kích thước 16x16 giúp việc "bắt dính" (snap) dễ hơn rất nhiều
-        QRectF scanArea(0, 0, 16, 16);
-        scanArea.moveCenter(event->scenePos());
-
-        // Lấy tất cả item trong vùng quét
-        QList<QGraphicsItem*> items = scene()->items(scanArea);
-        PinItem* targetPin = nullptr;
-
-        for (QGraphicsItem* item : items) {
-            targetPin = dynamic_cast<PinItem*>(item);
-
-            // Điều kiện nối:
-            // 1. Là Pin và không phải chính nó
-            // 2. Khác loại (In nối với Out)
-            // 3. Không nằm trên cùng một cổng logic (Tránh nối tắt trong 1 cổng)
-            if (targetPin && targetPin != this &&
-                targetPin->isInput() != this->isInput() &&
-                targetPin->parentItem() != this->parentItem()) {
-                break;
-            }
-            targetPin = nullptr;
-        }
-
-        if (targetPin) {
-            // Kiểm tra xem đã có dây nối giữa 2 pin này chưa (tránh nối đè)
-            WireItem* wire = new WireItem(this, targetPin);
-            scene()->addItem(wire);
-            this->addWire(wire);
-            targetPin->addWire(wire);
-            wire->transmit();
-        }
-
+        // Xóa dây tạm trước khi kiểm tra
         scene()->removeItem(m_tempWire);
         delete m_tempWire;
         m_tempWire = nullptr;
+
+        // Lấy tất cả item trong vùng nhỏ quanh chuột
+        QRectF area(event->scenePos() - QPointF(5,5), QSizeF(10,10));
+        QList<QGraphicsItem*> items = scene()->items(area);
+
+        for (QGraphicsItem* i : items) {
+            PinItem* targetPin = dynamic_cast<PinItem*>(i);
+            if (targetPin && targetPin != this) {
+                // Chỉ cần khác gate, không quan trọng input/output
+                if (targetPin->parentItem() != this->parentItem()) {
+                    // Tạo dây chính thức
+                    WireItem* wire = new WireItem(this, targetPin);
+                    scene()->addItem(wire);
+
+                    this->addWire(wire);
+                    targetPin->addWire(wire);
+
+                    wire->updatePosition();
+                    wire->transmit();
+                    break; // kết nối xong thì thoát vòng lặp
+                }
+            }
+        }
     }
 
     QGraphicsEllipseItem::mouseReleaseEvent(event);

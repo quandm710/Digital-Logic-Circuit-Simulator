@@ -16,7 +16,7 @@ class WireItem;
 class PinItem : public QGraphicsEllipseItem {
 public:
     PinItem(bool isInput, QGraphicsItem* parent)
-        : QGraphicsEllipseItem(-6, -6, 12, 12, parent), m_isInput(isInput)
+        : QGraphicsEllipseItem(-10, -10, 20, 20, parent), m_isInput(isInput)
     {
         // 1. Hình dáng: Tăng kích thước từ 8 lên 12 để dễ "bắt" dây hơn
         setBrush(Qt::white);
@@ -70,6 +70,7 @@ private:
     QPointF m_dragStartPosition;
     QGraphicsLineItem* m_tempWire = nullptr;
     QGraphicsTextItem* m_label = nullptr; // Nhãn hiển thị 0/1
+
 };
 
 // Cổng Logic (Người 1 vẽ - Người 2&3 xử lý logic)
