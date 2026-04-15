@@ -40,7 +40,8 @@ private slots:
 private:
     bool isWiringMode = false;
     void setupComponentList(); // Hàm bổ trợ
+    void addNewTab(const QString &title = "New Circuit");
     Ui::MainWindow *ui;
-    QGraphicsScene *scene;
+    QGraphicsScene* getCurrentScene();
 };
 #endif // MAINWINDOW_H

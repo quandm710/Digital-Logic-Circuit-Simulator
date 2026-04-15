@@ -17,7 +17,36 @@
    <iconset resource="resources.qrc">
     <normaloff>:/icons/images/windowIcon.png</normaloff>:/icons/images/windowIcon.png</iconset>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QTabWidget" name="tabWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>700</width>
+      <height>450</height>
+     </rect>
+    </property>
+    <property name="minimumSize">
+     <size>
+      <width>700</width>
+      <height>450</height>
+     </size>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>135</width>
+      <height>80</height>
+     </size>
+    </property>
+    <property name="baseSize">
+     <size>
+      <width>500</width>
+      <height>500</height>
+     </size>
+    </property>
+   </widget>
+  </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
@@ -35,13 +64,6 @@
     <addaction name="actionOpen"/>
     <addaction name="actionSave"/>
    </widget>
-   <widget class="QMenu" name="menuEdit">
-    <property name="title">
-     <string>Build</string>
-    </property>
-    <addaction name="actionRun"/>
-    <addaction name="actionStop"/>
-   </widget>
    <widget class="QMenu" name="menuEdit_2">
     <property name="title">
      <string>Edit</string>
@@ -49,7 +71,6 @@
     <addaction name="actionConfig"/>
    </widget>
    <addaction name="menuFile"/>
-   <addaction name="menuEdit"/>
    <addaction name="menuEdit_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -85,28 +106,6 @@
        <property name="maximumSize">
         <size>
          <width>100</width>
-         <height>450</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </widget>
-  </widget>
-  <widget class="QDockWidget" name="dockWorkspace">
-   <property name="windowTitle">
-    <string>Workspace</string>
-   </property>
-   <attribute name="dockWidgetArea">
-    <number>2</number>
-   </attribute>
-   <widget class="QWidget" name="dockWidgetWorkspace">
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item alignment="Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTop">
-      <widget class="QGraphicsView" name="graphicsView">
-       <property name="minimumSize">
-        <size>
-         <width>700</width>
          <height>450</height>
         </size>
        </property>
@@ -175,42 +174,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+S</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::ApplicationSpecificRole</enum>
-   </property>
-  </action>
-  <action name="actionRun">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/icons/images/run.png</normaloff>:/icons/images/run.png</iconset>
-   </property>
-   <property name="text">
-    <string>Run</string>
-   </property>
-   <property name="toolTip">
-    <string>Run simulation</string>
-   </property>
-   <property name="shortcut">
-    <string>F5</string>
-   </property>
-   <property name="menuRole">
-    <enum>QAction::MenuRole::ApplicationSpecificRole</enum>
-   </property>
-  </action>
-  <action name="actionStop">
-   <property name="icon">
-    <iconset resource="resources.qrc">
-     <normaloff>:/icons/images/stop.png</normaloff>:/icons/images/stop.png</iconset>
-   </property>
-   <property name="text">
-    <string>Stop</string>
-   </property>
-   <property name="toolTip">
-    <string>Stop simulation</string>
-   </property>
-   <property name="shortcut">
-    <string>F6</string>
    </property>
    <property name="menuRole">
     <enum>QAction::MenuRole::ApplicationSpecificRole</enum>

@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "./ui_mainwindow.h"
 #include "logicgateitem.h"
+#include <QGraphicsView>
 #include <QColorDialog>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -11,20 +12,18 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
     ui->setupUi(this);
+    ui->tabWidget->setTabsClosable(true);
 
-    scene = new QGraphicsScene(this);
-    scene->setSceneRect(-1000, -1000, 2000, 2000);
+    addNewTab("Untitled 1");
 
-    ui->graphicsView->setScene(scene);
-    // Khử răng cưa và tối ưu hóa vẽ
-    ui->graphicsView->setRenderHint(QPainter::Antialiasing);
-    ui->graphicsView->setRenderHint(QPainter::TextAntialiasing);
-    ui->graphicsView->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
-    // Giúp việc kéo thả mượt hơn
-    ui->graphicsView->setOptimizationFlag(QGraphicsView::IndirectPainting);
-
-    scene->setBackgroundBrush(QBrush(QColor(245, 245, 245)));
     setupComponentList();
+
+    connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, [this](int index) {
+        // Có thể thêm bước hỏi "Bạn có muốn lưu không?" ở đây
+        QWidget* w = ui->tabWidget->widget(index);
+        ui->tabWidget->removeTab(index);
+        delete w; // Xóa để giải phóng bộ nhớ
+    });
 }
 
 MainWindow::~MainWindow() { delete ui; }
@@ -35,24 +34,29 @@ void MainWindow::setupComponentList() {
 }
 
 void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
-    QString text = item->text();
-    LogicGateItem::GateType type;
+    // Lấy scene của tab hiện tại
+    QGraphicsScene* s = getCurrentScene();
+    if (!s) {
+        qDebug() << "Không tìm thấy Scene hiện tại!";
+        return;
+    }
 
-    if (text == "AND Gate") type = LogicGateItem::AND;
-    else if (text == "OR Gate") type = LogicGateItem::OR;
-    else if (text == "NAND Gate") type = LogicGateItem::NAND;
-    else if (text == "NOR Gate") type = LogicGateItem::NOR;
-    else if (text == "EXOR Gate") type = LogicGateItem::EXOR;
-    else if (text == "EXNOR Gate") type = LogicGateItem::EXNOR;
-    else type = LogicGateItem::NOT;
+    QString text = item->text();
+    LogicGateItem* gate = nullptr;
+
+    if (text == "AND Gate") gate = new LogicGateItem(LogicGateItem::AND);
+    else if (text == "OR Gate") gate = new LogicGateItem(LogicGateItem::OR);
+    else if (text == "NAND Gate") gate = new LogicGateItem(LogicGateItem::NAND);
+    else if (text == "NOR Gate") gate = new LogicGateItem(LogicGateItem::NOR);
+    else if (text == "EXOR Gate") gate = new LogicGateItem(LogicGateItem::EXOR);
+    else if (text == "EXNOR Gate") gate = new LogicGateItem(LogicGateItem::EXNOR);
+    else gate = new LogicGateItem(LogicGateItem::NOT);
 
     try {
-        auto gate = new LogicGateItem(type);
-        gate->setPos(0,0); // Tạo tại tâm tọa độ
-        scene->addItem(gate);
-        scene->clearSelection();
-        gate->setSelected(true);
-        scene->update();
+        if (gate) {
+            s->addItem(gate); // Thêm vào scene hiện tại
+            gate->setPos(0, 0);
+        }
     } catch (...) {
         qDebug() << "Lỗi khi tạo cổng logic!";
     }
@@ -71,39 +75,76 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         }
     }
     if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
-        QList<QGraphicsItem*> selected = scene->selectedItems();
+        QGraphicsScene* s = getCurrentScene();
+        QList<QGraphicsItem*> selected = s->selectedItems();
         for (QGraphicsItem* item : selected) {
-            scene->removeItem(item);
+            s->removeItem(item);
             delete item;
         }
     }
     QMainWindow::keyPressEvent(event);
 }
 
+// --- SCENE ---
+// Hàm lấy Scene của Tab đang mở
+QGraphicsScene* MainWindow::getCurrentScene() {
+    QWidget* currentTab = ui->tabWidget->currentWidget();
+    if (!currentTab) return nullptr;
+
+    // Tìm QtabWidget trong Tab hiện tại
+    QGraphicsView* view = currentTab->findChild<QGraphicsView*>();
+    return view ? view->scene() : nullptr;
+}
+void MainWindow::addNewTab(const QString &title) {
+    // 1. Tạo View và Scene riêng cho Tab này
+    QGraphicsView* view = new QGraphicsView();
+    QGraphicsScene* newScene = new QGraphicsScene(this);
+
+    newScene->setSceneRect(-1000, -1000, 2000, 2000);
+    newScene->setBackgroundBrush(QBrush(QColor(245, 245, 245)));
+
+    view->setScene(newScene);
+    view->setRenderHint(QPainter::Antialiasing);
+    view->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
+    view->setDragMode(QGraphicsView::RubberBandDrag);
+    view->centerOn(0, 0);
+
+    // 2. Thêm vào TabWidget
+    int index = ui->tabWidget->addTab(view, title);
+    ui->tabWidget->setCurrentIndex(index);
+}
 // --- FILE MENU ---
 void MainWindow::on_actionNew_triggered() {
-    scene->clear();
+    addNewTab("Untitled " + QString::number(ui->tabWidget->count() + 1));
 }
-
 void MainWindow::on_actionOpen_triggered() {
     QString fileName = QFileDialog::getOpenFileName(this, "Open Circuit", "", "*.logic");
     if (fileName.isEmpty()) return;
+
+    // Tạo Tab mới với tên là tên file
+    addNewTab(QFileInfo(fileName).fileName());
+    QGraphicsScene* s = getCurrentScene();
+
     QFile file(fileName);
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&file);
         while (!in.atEnd()) {
-            QStringList tokens = in.readLine().split(" ");
-            if (tokens[0] == "GATE") {
-                auto gate = new LogicGateItem((LogicGateItem::GateType)tokens[1].toInt());
+            QString line = in.readLine();
+            QStringList tokens = line.split(" ");
+            if (tokens.size() >= 4 && tokens[0] == "GATE") {
+                LogicGateItem::GateType type = static_cast<LogicGateItem::GateType>(tokens[1].toInt());
+                LogicGateItem* gate = new LogicGateItem(type);
                 gate->setPos(tokens[2].toDouble(), tokens[3].toDouble());
-                scene->addItem(gate);
+                s->addItem(gate);
             }
         }
         file.close();
     }
 }
-
 void MainWindow::on_actionSave_triggered() {
+    QGraphicsScene* s = getCurrentScene();
+    if (!s) return;
+
     QString fileName = QFileDialog::getSaveFileName(this, "Save Circuit", "", "*.logic");
     if (fileName.isEmpty()) return;
 
@@ -111,7 +152,7 @@ void MainWindow::on_actionSave_triggered() {
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
         // Người 4: Duyệt qua các item để lưu tọa độ
-        for (QGraphicsItem* item : scene->items()) {
+        for (QGraphicsItem* item : s->items()) {
             LogicGateItem* gate = dynamic_cast<LogicGateItem*>(item);
             if (gate) {
                 out << "GATE " << gate->getGateType() << " "
@@ -124,20 +165,26 @@ void MainWindow::on_actionSave_triggered() {
 
 // --- CONFIG ---
 void MainWindow::on_actionConfig_triggered() {
+    QGraphicsScene* s = getCurrentScene();
+    if (!s) return;
     QColor color = QColorDialog::getColor(Qt::white, this);
-    if (color.isValid()) scene->setBackgroundBrush(color);
+    if (color.isValid()) s->setBackgroundBrush(color);
 }
 
 // --- SIMULATION ---
 void MainWindow::on_actionRun_triggered() {
-    // Đổi màu nền sang xanh nhẹ để báo hiệu đang chạy
-    scene->setBackgroundBrush(QBrush(QColor(240, 255, 240)));
+    QGraphicsScene* s = getCurrentScene();
+    if (!s) return;
+
+    s->setBackgroundBrush(QBrush(QColor(240, 255, 240))); // Màu xanh nhạt báo hiệu đang chạy
     ui->statusbar->showMessage("Simulation is running...");
-    // Gọi thread mô phỏng của bạn ở đây
+
 }
 
 void MainWindow::on_actionStop_triggered() {
     // Trả lại màu nền cũ
-    scene->setBackgroundBrush(QBrush(Qt::white));
+    QGraphicsScene* s = getCurrentScene();
+    if (!s) return;
+    s->setBackgroundBrush(QBrush(Qt::white));
     ui->statusbar->showMessage("Simulation stopped.");
 }
