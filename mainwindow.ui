@@ -35,8 +35,8 @@
     </property>
     <property name="maximumSize">
      <size>
-      <width>135</width>
-      <height>80</height>
+      <width>700</width>
+      <height>450</height>
      </size>
     </property>
     <property name="baseSize">
@@ -45,33 +45,13 @@
       <height>500</height>
      </size>
     </property>
-   </widget>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>860</width>
-     <height>25</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuFile">
-    <property name="title">
-     <string>File</string>
+    <property name="mouseTracking">
+     <bool>true</bool>
     </property>
-    <addaction name="actionNew"/>
-    <addaction name="actionOpen"/>
-    <addaction name="actionSave"/>
-   </widget>
-   <widget class="QMenu" name="menuEdit_2">
-    <property name="title">
-     <string>Edit</string>
+    <property name="tabsClosable">
+     <bool>true</bool>
     </property>
-    <addaction name="actionConfig"/>
    </widget>
-   <addaction name="menuFile"/>
-   <addaction name="menuEdit_2"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockComponents">
@@ -124,6 +104,32 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>860</width>
+     <height>25</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionNew"/>
+    <addaction name="actionOpen"/>
+    <addaction name="actionSave"/>
+   </widget>
+   <widget class="QMenu" name="menuEdit_2">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionConfig"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuEdit_2"/>
   </widget>
   <action name="actionNew">
    <property name="icon">

@@ -12,7 +12,6 @@
 class LogicGate;
 class WireItem;
 
-// Chân cắm (Người 4 dùng để nối dây)
 class PinItem : public QGraphicsEllipseItem {
 public:
     PinItem(bool isInput, QGraphicsItem* parent)
@@ -73,28 +72,35 @@ private:
     QGraphicsTextItem* m_label = nullptr; // Nhãn hiển thị 0/1
 };
 
-// Cổng Logic (Người 1 vẽ - Người 2&3 xử lý logic)
 class LogicGateItem : public QGraphicsRectItem {
 public:
     enum GateType { AND, OR, NAND, NOR, EXOR, EXNOR, NOT };
     LogicGateItem(GateType type, QGraphicsItem* parent = nullptr);
     ~LogicGateItem();
+
     GateType getGateType() const { return m_type; }
+
+    bool getOutputValue();
+
+    void setId(int id) { m_id = id; }
+    int getId() const { return m_id; }
+
+    PinItem* getInputPin(int index);
+    PinItem* getOutputPin();
 
     void compute();
     void deleteWireOfPin(PinItem* pin);
 
 protected:
-    // Tự động cập nhật khi di chuyển (Người 4)
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 
 private:
-    std::unique_ptr<LogicGate> m_core; // Dòng này cực kỳ quan trọng
+    std::unique_ptr<LogicGate> m_core;
+
     GateType m_type;
+
     std::vector<PinItem*> m_inputs;
     PinItem* m_output;
+    int m_id;
 };
-
-
-
 #endif

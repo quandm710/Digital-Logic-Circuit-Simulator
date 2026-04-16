@@ -81,11 +81,17 @@ QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &va
         // Mỗi khi cổng di chuyển, bảo các chân Pin hãy kéo dây theo
         for (auto pin : m_inputs) pin->updateConnectedWires();
         if (m_output) m_output->updateConnectedWires();
+        if (scene() && !scene()->views().isEmpty()) {
+            // Tìm MainWindow thông qua view và cửa sổ chứa nó
+            MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+            if (mainWin) {
+                mainWin->setDocumentDirty(true);
+            }
+        }
     }
     return QGraphicsRectItem::itemChange(change, value);
 }
 void LogicGateItem::compute() {
-    // 1. Kiểm tra an toàn: nếu chưa có bộ não hoặc chân cắm thì bỏ qua
     if (!m_core || m_inputs.empty()) return;
 
     // 2. Thu thập giá trị 0/1 (true/false) từ các chân Pin đầu vào
@@ -99,9 +105,42 @@ void LogicGateItem::compute() {
 
     // 4. Cập nhật kết quả ra chân đầu ra (m_output)
     if (m_output) {
-        m_output->setValue(result); // Chân đầu ra sẽ đổi màu nếu kết quả thay đổi
+        bool oldValue = m_output->value();
+        if (oldValue != result) {
+            m_output->setValue(result);
+
+            // Đánh dấu mạch đã thay đổi (Dirty Bit)
+            if (scene() && !scene()->views().isEmpty()) {
+                MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+                if (mainWin) mainWin->setDocumentDirty(true);
+            }
+        }
     }
 }
+PinItem* LogicGateItem::getInputPin(int index) {
+    // Giả sử bạn lưu các pin vào một vector m_inputs khi khởi tạo gate
+    if (index >= 0 && index < m_inputs.size()) {
+        return m_inputs[index];
+    }
+    return nullptr;
+}
+
+PinItem* LogicGateItem::getOutputPin() {
+    return m_output; // Trả về pin đầu ra đã tạo trong constructor
+}
+bool LogicGateItem::getOutputValue() {
+    if (!m_core || m_inputs.empty()) return false;
+
+    // Thu thập giá trị hiện tại từ các chân input
+    std::vector<bool> inputValues;
+    for (PinItem* pin : m_inputs) {
+        inputValues.push_back(pin->value());
+    }
+
+    // Trả về kết quả tính toán từ core logic
+    return m_core->compute(inputValues);
+}
+// --- PinItem ---
 void PinItem::updateConnectedWires() {
     for (WireItem* wire : m_connectedWires) {
         if (wire) wire->updatePosition();
@@ -156,6 +195,9 @@ void PinItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
     }
 }
 void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+    if (m_isInput && !m_connectedWires.empty()) {
+        return; // Thoát ra, không cho phép đổi giá trị (0 -> 1)
+    }
     // Lấy trạng thái mode từ MainWindow
     MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
     bool wiringMode = mainWin ? mainWin->getWiringMode() : false;
@@ -236,7 +278,10 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
                 }
             }
         }
+        if (scene() && !scene()->views().isEmpty()) {
+            MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+            if (mainWin) mainWin->setDocumentDirty(true);
+        }
     }
-
     QGraphicsEllipseItem::mouseReleaseEvent(event);
 }

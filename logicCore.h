@@ -5,64 +5,87 @@
 
 using namespace std;
 class LogicGate {
+protected:
+    vector<bool> m_lastInputs;
+    bool m_output = false;
 public:
     virtual ~LogicGate() = default;
+
     virtual bool compute(const vector<bool>& inputs) = 0;
+
+    virtual bool getOutput() const {
+        return m_output;
+    }
+    virtual void setInput(int index, bool value) {
+        if (index >= 0 && index < (int)m_lastInputs.size()) {
+            m_lastInputs[index] = value;
+        }
+    }
 };
 
+// --- LOGIC GATES ---
 class AndGate : public LogicGate {
 public:
     bool compute(const vector<bool>& inputs) override {
         if (inputs.size() < 2) return false;
-        return inputs[0] && inputs[1];
+        m_output = inputs[0] && inputs[1];
+        return m_output;
     }
 };
 
-// Người 2 & 3 sẽ tiếp tục viết OrGate, NotGate... ở đây
-class NandGate : public LogicGate {
-public:
-    bool compute(const vector<bool>& inputs) override {
-        if (inputs.size() < 2) return true;
-        return !(inputs[0] && inputs[1]); //phủ định của And
-    }
-};
-class NotGate : public LogicGate {
-public:
-    bool compute(const vector<bool>& inputs) override {
-        if (inputs.empty()) return false;
-        return !inputs[0];
-    }
-};
 class OrGate : public LogicGate {
 public:
     bool compute(const vector<bool>& inputs) override {
         if (inputs.size() < 2) return false;
-        return inputs[0] || inputs[1];// trả về true nếu 1 trong 2 vị trí là true
+        m_output = inputs[0] || inputs[1];
+        return m_output;
     }
 };
+
+class NandGate : public LogicGate {
+public:
+    bool compute(const vector<bool>& inputs) override {
+        if (inputs.size() < 2) return true;
+        m_output = !(inputs[0] && inputs[1]);
+        return m_output;
+    }
+};
+
 class NorGate : public LogicGate {
 public:
     bool compute(const vector<bool>& inputs) override {
         if (inputs.size() < 2) return true;
-        return !(inputs[0] || inputs[1]);// phủ định lại với cổng OrGate
+        m_output = !(inputs[0] || inputs[1]);
+        return m_output;
     }
 };
+
+class NotGate : public LogicGate {
+public:
+    bool compute(const vector<bool>& inputs) override {
+        if (inputs.empty()) return false;
+        m_output = !inputs[0];
+        return m_output;
+    }
+};
+
 class ExorGate : public LogicGate {
 public:
     bool compute(const vector<bool>& inputs) override {
         if (inputs.size() < 2) return false;
-        bool A = inputs[0];
-        bool B = inputs[1];
-        return (!A && B) || (A && !B); //(NOT A AND B) OR (A AND NOT B)
+        // XOR: true nếu 2 đầu vào khác nhau
+        m_output = (inputs[0] != inputs[1]);
+        return m_output;
     }
 };
+
 class ExnorGate : public LogicGate {
 public:
     bool compute(const vector<bool>& inputs) override {
         if (inputs.size() < 2) return true;
-        bool A = inputs[0];
-        bool B = inputs[1];
-        return (A && B) || (!A && !B); //(A AND B) OR (NOT A AND NOT B)
+        // XNOR: true nếu 2 đầu vào giống nhau
+        m_output = (inputs[0] == inputs[1]);
+        return m_output;
     }
 };
 #endif // LOGICCORE_H

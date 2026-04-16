@@ -19,6 +19,9 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
     bool getWiringMode() { return isWiringMode; }
+    void setDocumentDirty(bool dirty); // Hàm cập nhật trạng thái UI
+    void onTabCloseRequested(int index);
+    void closeEvent(QCloseEvent *event);
 
 public slots:
     void keyPressEvent(QKeyEvent *event);
@@ -31,10 +34,6 @@ private slots:
 
     void on_actionSave_triggered();
 
-    void on_actionRun_triggered();
-
-    void on_actionStop_triggered();
-
     void on_actionConfig_triggered();
 
 private:
@@ -43,5 +42,6 @@ private:
     void addNewTab(const QString &title = "New Circuit");
     Ui::MainWindow *ui;
     QGraphicsScene* getCurrentScene();
+    bool isDirty = false;
 };
 #endif // MAINWINDOW_H
