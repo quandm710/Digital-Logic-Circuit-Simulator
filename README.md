@@ -25,5 +25,5 @@ LOGIC SIMULATOR - CÔNG CỤ MÔ PHỎNG MẠCH LOGIC KỸ THUẬT SỐ
 - Thành viên || Nhiệm vụ chính
   + Quan (Nhóm trưởng) || Tạo GUI cơ bản, xử lý File I/O, tổng hợp và testing.
   + Quý || Xây dựng logic các cổng, xây dựng dây nối và truyền tín hiệu.
-  + Thịnh || Lên ý tưởng (flowchart, tối ưu cửa sổ phần mềm, viết báo cáo.
+  + Thịnh || Lên ý tưởng (flowchart), tối ưu cửa sổ phần mềm, viết báo cáo.
   + Sang || Tối ưu giao diện workspace, testing.
