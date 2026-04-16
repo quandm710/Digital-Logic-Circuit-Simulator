@@ -10,6 +10,7 @@
 #include "./ui_mainwindow.h"
 #include "logicgateitem.h"
 #include "wire.h"
+#include <QApplication>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -121,6 +122,9 @@ void MainWindow::setupComponentList()
 
 void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
 {
+    if (QApplication::mouseButtons() != Qt::LeftButton) {
+        return; 
+    }
     // Lấy scene của tab hiện tại
     QGraphicsScene *s = getCurrentScene();
     if (!s) {
