@@ -2,9 +2,11 @@
 #define SIMULATIONTHREAD_H
 #include <QThread>
 
-class SimulationThread : public QThread {
+class SimulationThread : public QThread
+{
     Q_OBJECT
-    void run() override {
+    void run() override
+    {
         while (!isInterruptionRequested()) {
             // 1. Lấy dữ liệu từ các cổng đầu vào (Input Sources)
             // 2. Duyệt qua danh sách Wire để truyền tín hiệu

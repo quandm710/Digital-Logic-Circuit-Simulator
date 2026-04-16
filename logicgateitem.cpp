@@ -1,17 +1,21 @@
 #include "logicgateitem.h"
+#include <QGraphicsScene>
+#include <QGraphicsSceneMouseEvent>
+#include <QGraphicsView>
 #include "logicCore.h"
 #include "mainwindow.h"
 #include "wire.h"
-#include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QGraphicsSceneMouseEvent>
-#include<memory>
+#include <memory>
 // Constructor của LogicGateItem
-LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent) : QGraphicsRectItem(parent), m_type(type) {
+LogicGateItem::LogicGateItem(GateType type, QGraphicsItem *parent)
+    : QGraphicsRectItem(parent)
+    , m_type(type)
+{
     setRect(0, 0, 80, 50);
     setBrush(QBrush(QColor(230, 240, 250)));
     setPen(QPen(Qt::black, 2));
-    setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable | QGraphicsItem::ItemSendsGeometryChanges);
+    setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable
+             | QGraphicsItem::ItemSendsGeometryChanges);
 
     // Hiển thị tên cổng tương ứng
     QString name;
@@ -22,7 +26,7 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent) : QGraphicsRe
         break;
     case LogicGateItem::OR:
         name = "OR";
-        m_core = std::make_unique<OrGate>();  // Kết nối logic cổng OR
+        m_core = std::make_unique<OrGate>(); // Kết nối logic cổng OR
         break;
     case LogicGateItem::NAND:
         name = "NAND";
@@ -60,8 +64,8 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent) : QGraphicsRe
     QRectF textRect = text->boundingRect();
     text->setPos((80 - textRect.width()) / 2, (50 - textRect.height()) / 2);
     int inputCount = (type == NOT) ? 1 : 2;
-    for(int i = 0; i < inputCount; ++i) {
-        PinItem* pin = new PinItem(true, this);
+    for (int i = 0; i < inputCount; ++i) {
+        PinItem *pin = new PinItem(true, this);
         int yPos = (inputCount == 1) ? 25 : (15 + i * 20);
         pin->setPos(0, yPos);
         m_inputs.push_back(pin);
@@ -71,19 +75,24 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem* parent) : QGraphicsRe
     m_output->setPos(80, 25);
 }
 // Destructor của LogicGateItem
-LogicGateItem::~LogicGateItem() {
+LogicGateItem::~LogicGateItem()
+{
     // Lấy tất cả Pin của cổng này
-    for (auto pin : m_inputs) deleteWireOfPin(pin);
+    for (auto pin : m_inputs)
+        deleteWireOfPin(pin);
     deleteWireOfPin(m_output);
 }
-QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value) {
+QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value)
+{
     if (change == ItemPositionHasChanged) {
         // Mỗi khi cổng di chuyển, bảo các chân Pin hãy kéo dây theo
-        for (auto pin : m_inputs) pin->updateConnectedWires();
-        if (m_output) m_output->updateConnectedWires();
+        for (auto pin : m_inputs)
+            pin->updateConnectedWires();
+        if (m_output)
+            m_output->updateConnectedWires();
         if (scene() && !scene()->views().isEmpty()) {
             // Tìm MainWindow thông qua view và cửa sổ chứa nó
-            MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+            MainWindow *mainWin = qobject_cast<MainWindow *>(scene()->views().first()->window());
             if (mainWin) {
                 mainWin->setDocumentDirty(true);
             }
@@ -91,12 +100,14 @@ QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &va
     }
     return QGraphicsRectItem::itemChange(change, value);
 }
-void LogicGateItem::compute() {
-    if (!m_core || m_inputs.empty()) return;
+void LogicGateItem::compute()
+{
+    if (!m_core || m_inputs.empty())
+        return;
 
     // 2. Thu thập giá trị 0/1 (true/false) từ các chân Pin đầu vào
     std::vector<bool> inputValues;
-    for (PinItem* pin : m_inputs) {
+    for (PinItem *pin : m_inputs) {
         inputValues.push_back(pin->value());
     }
 
@@ -111,13 +122,15 @@ void LogicGateItem::compute() {
 
             // Đánh dấu mạch đã thay đổi (Dirty Bit)
             if (scene() && !scene()->views().isEmpty()) {
-                MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
-                if (mainWin) mainWin->setDocumentDirty(true);
+                MainWindow *mainWin = qobject_cast<MainWindow *>(scene()->views().first()->window());
+                if (mainWin)
+                    mainWin->setDocumentDirty(true);
             }
         }
     }
 }
-PinItem* LogicGateItem::getInputPin(int index) {
+PinItem *LogicGateItem::getInputPin(int index)
+{
     // Giả sử bạn lưu các pin vào một vector m_inputs khi khởi tạo gate
     if (index >= 0 && index < m_inputs.size()) {
         return m_inputs[index];
@@ -125,15 +138,18 @@ PinItem* LogicGateItem::getInputPin(int index) {
     return nullptr;
 }
 
-PinItem* LogicGateItem::getOutputPin() {
+PinItem *LogicGateItem::getOutputPin()
+{
     return m_output; // Trả về pin đầu ra đã tạo trong constructor
 }
-bool LogicGateItem::getOutputValue() {
-    if (!m_core || m_inputs.empty()) return false;
+bool LogicGateItem::getOutputValue()
+{
+    if (!m_core || m_inputs.empty())
+        return false;
 
     // Thu thập giá trị hiện tại từ các chân input
     std::vector<bool> inputValues;
-    for (PinItem* pin : m_inputs) {
+    for (PinItem *pin : m_inputs) {
         inputValues.push_back(pin->value());
     }
 
@@ -141,23 +157,29 @@ bool LogicGateItem::getOutputValue() {
     return m_core->compute(inputValues);
 }
 // --- PinItem ---
-void PinItem::updateConnectedWires() {
-    for (WireItem* wire : m_connectedWires) {
-        if (wire) wire->updatePosition();
+void PinItem::updateConnectedWires()
+{
+    for (WireItem *wire : m_connectedWires) {
+        if (wire)
+            wire->updatePosition();
     }
 }
-void PinItem::notifyWires() {
+void PinItem::notifyWires()
+{
     for (auto wire : m_connectedWires) {
-        if (wire) wire->transmit();
+        if (wire)
+            wire->transmit();
     }
 }
-void LogicGateItem::deleteWireOfPin(PinItem* pin) {
-    if (!pin) return;
+void LogicGateItem::deleteWireOfPin(PinItem *pin)
+{
+    if (!pin)
+        return;
 
     // Lấy danh sách dây thông qua hàm getter vừa tạo
-    std::vector<WireItem*> wires = pin->getConnectedWires();
+    std::vector<WireItem *> wires = pin->getConnectedWires();
 
-    for (WireItem* wire : wires) {
+    for (WireItem *wire : wires) {
         if (wire) {
             // Xóa dây khỏi Scene trước khi delete
             if (scene()) {
@@ -167,44 +189,50 @@ void LogicGateItem::deleteWireOfPin(PinItem* pin) {
         }
     }
 }
-void PinItem::removeWire(WireItem* wire) {
+void PinItem::removeWire(WireItem *wire)
+{
     auto it = std::find(m_connectedWires.begin(), m_connectedWires.end(), wire);
     if (it != m_connectedWires.end()) {
         m_connectedWires.erase(it);
     }
 }
-void PinItem::setValue(bool v) {
-    if (m_value == v) return; // tránh vòng lặp vô hạn
+void PinItem::setValue(bool v)
+{
+    if (m_value == v)
+        return; // tránh vòng lặp vô hạn
     m_value = v;
 
     setBrush(v ? Qt::red : Qt::white);
-    if (m_label) m_label->setPlainText(v ? "1" : "0");
+    if (m_label)
+        m_label->setPlainText(v ? "1" : "0");
 
     if (m_isInput) {
-        if (auto gate = dynamic_cast<LogicGateItem*>(parentItem())) {
+        if (auto gate = dynamic_cast<LogicGateItem *>(parentItem())) {
             gate->compute();
         }
     } else {
         notifyWires(); // truyền tín hiệu qua dây
     }
 }
-void PinItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event) {
+void PinItem::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+{
     if (m_tempWire) {
-    // Cập nhật đường kẻ từ tâm Pin đến vị trí chuột hiện tại
+        // Cập nhật đường kẻ từ tâm Pin đến vị trí chuột hiện tại
         m_tempWire->setLine(QLineF(this->scenePos(), event->scenePos()));
     }
 }
-void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
+void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
     if (m_isInput && !m_connectedWires.empty()) {
         return; // Thoát ra, không cho phép đổi giá trị (0 -> 1)
     }
     // Lấy trạng thái mode từ MainWindow
-    MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
+    MainWindow *mainWin = qobject_cast<MainWindow *>(scene()->views().first()->window());
     bool wiringMode = mainWin ? mainWin->getWiringMode() : false;
 
     // Chuột trái
     if (event->button() == Qt::LeftButton) {
-            // Chế độ nối dây
+        // Chế độ nối dây
         if (wiringMode) {
             m_dragStartPosition = scenePos(); // Lấy tâm của Pin làm điểm bắt đầu
             m_tempWire = new QGraphicsLineItem(QLineF(m_dragStartPosition, m_dragStartPosition));
@@ -215,12 +243,12 @@ void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
 
             grabMouse();
             event->accept();
-        }   // Chế độ tương tác
+        } // Chế độ tương tác
         else {
             if (m_isInput) {
                 setValue(!m_value); // Đảo giá trị 0/1
                 // Cập nhật logic cho cổng cha ngay lập tức
-                LogicGateItem* parentGate = dynamic_cast<LogicGateItem*>(parentItem());
+                LogicGateItem *parentGate = dynamic_cast<LogicGateItem *>(parentItem());
                 if (parentGate) {
                     parentGate->compute();
                 }
@@ -232,7 +260,8 @@ void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event) {
         event->ignore();
     }
 }
-void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
+void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
     if (event->button() != Qt::LeftButton) {
         QGraphicsEllipseItem::mouseReleaseEvent(event);
         return;
@@ -247,11 +276,11 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
         m_tempWire = nullptr;
 
         // Lấy tất cả item trong vùng nhỏ quanh chuột
-        QRectF area(event->scenePos() - QPointF(5,5), QSizeF(10,10));
-        QList<QGraphicsItem*> items = scene()->items(area);
+        QRectF area(event->scenePos() - QPointF(5, 5), QSizeF(10, 10));
+        QList<QGraphicsItem *> items = scene()->items(area);
 
-        for (QGraphicsItem* i : items) {
-            PinItem* targetPin = dynamic_cast<PinItem*>(i);
+        for (QGraphicsItem *i : items) {
+            PinItem *targetPin = dynamic_cast<PinItem *>(i);
             if (targetPin && targetPin != this) {
                 // Chỉ cần khác gate, không quan trọng input/output
                 if (targetPin->parentItem() != this->parentItem()) {
@@ -265,7 +294,7 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
                     }
                     // Tạo dây chính thức
                     if (!exists && targetPin->parentItem() != this->parentItem()) {
-                        WireItem* wire = new WireItem(this, targetPin);
+                        WireItem *wire = new WireItem(this, targetPin);
                         scene()->addItem(wire);
 
                         this->addWire(wire);
@@ -279,8 +308,9 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event) {
             }
         }
         if (scene() && !scene()->views().isEmpty()) {
-            MainWindow* mainWin = qobject_cast<MainWindow*>(scene()->views().first()->window());
-            if (mainWin) mainWin->setDocumentDirty(true);
+            MainWindow *mainWin = qobject_cast<MainWindow *>(scene()->views().first()->window());
+            if (mainWin)
+                mainWin->setDocumentDirty(true);
         }
     }
     QGraphicsEllipseItem::mouseReleaseEvent(event);

@@ -1,9 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 #include <QGraphicsScene>
-#include <QMainWindow>
-#include <QListWidgetItem>
 #include <QKeyEvent>
+#include <QListWidgetItem>
+#include <QMainWindow>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -41,7 +41,7 @@ private:
     void setupComponentList(); // Hàm bổ trợ
     void addNewTab(const QString &title = "New Circuit");
     Ui::MainWindow *ui;
-    QGraphicsScene* getCurrentScene();
+    QGraphicsScene *getCurrentScene();
     bool isDirty = false;
 };
 #endif // MAINWINDOW_H

@@ -1,18 +1,20 @@
 #include "mainwindow.h"
+#include <QColorDialog>
+#include <QDebug>
+#include <QFileDialog>
+#include <QGraphicsView>
+#include <QMessageBox>
+#include <QPoint>
+#include <QPointF>
+#include <QVBoxLayout>
 #include "./ui_mainwindow.h"
 #include "logicgateitem.h"
 #include "wire.h"
-#include <QGraphicsView>
-#include <QVBoxLayout>
-#include <QColorDialog>
-#include <QFileDialog>
-#include <QMessageBox>
-#include <QDebug>
-#include <QPoint>
-#include <QPointF>
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow) {
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
     ui->setupUi(this);
     ui->tabWidget->setTabsClosable(true);
 
@@ -28,23 +30,30 @@ MainWindow::MainWindow(QWidget *parent)
     });*/
 }
 
-MainWindow::~MainWindow() { delete ui; }
+MainWindow::~MainWindow()
+{
+    delete ui;
+}
 
-void MainWindow::onTabCloseRequested(int index) {
-    QWidget* tabToClose = ui->tabWidget->widget(index);
-    if (!tabToClose) return;
+void MainWindow::onTabCloseRequested(int index)
+{
+    QWidget *tabToClose = ui->tabWidget->widget(index);
+    if (!tabToClose)
+        return;
 
     bool isDirty = tabToClose->property("isDirty").toBool();
 
     if (isDirty) {
         QString tabName = ui->tabWidget->tabText(index);
-        if (tabName.endsWith("*")) tabName.chop(1);
+        if (tabName.endsWith("*"))
+            tabName.chop(1);
 
-        QMessageBox::StandardButton resBtn = QMessageBox::question(this,
-                                                                   "Xác nhận đóng",
-                                                                   QString("Mạch '%1' đã thay đổi. Bạn có muốn lưu trước khi đóng không?").arg(tabName),
-                                                                   QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-                                                                   QMessageBox::Save);
+        QMessageBox::StandardButton resBtn = QMessageBox::question(
+            this,
+            "Xác nhận đóng",
+            QString("Mạch '%1' đã thay đổi. Bạn có muốn lưu trước khi đóng không?").arg(tabName),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+            QMessageBox::Save);
 
         if (resBtn == QMessageBox::Save) {
             on_actionSave_triggered();
@@ -59,7 +68,8 @@ void MainWindow::onTabCloseRequested(int index) {
     tabToClose->deleteLater(); // Dùng deleteLater() an toàn hơn delete trực tiếp trong Qt
 }
 
-void MainWindow::closeEvent(QCloseEvent *event) {
+void MainWindow::closeEvent(QCloseEvent *event)
+{
     bool hasDirtyTabs = false;
     for (int i = 0; i < ui->tabWidget->count(); ++i) {
         if (ui->tabWidget->widget(i)->property("isDirty").toBool()) {
@@ -69,7 +79,12 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
 
     if (hasDirtyTabs) {
-        QMessageBox::StandardButton resBtn = QMessageBox::question(this, "Thoát phần mềm", "Có tab chưa lưu. Bạn có chắc chắn muốn thoát không?\nMọi thay đổi chưa lưu sẽ bị mất.", QMessageBox::No | QMessageBox::Yes, QMessageBox::No);
+        QMessageBox::StandardButton resBtn = QMessageBox::question(
+            this,
+            "Thoát phần mềm",
+            "Có tab chưa lưu. Bạn có chắc chắn muốn thoát không?\nMọi thay đổi chưa lưu sẽ bị mất.",
+            QMessageBox::No | QMessageBox::Yes,
+            QMessageBox::No);
         if (resBtn != QMessageBox::Yes) {
             event->ignore(); // Ngăn việc đóng ứng dụng
             return;
@@ -78,12 +93,14 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     event->accept(); // Cho phép đóng
 }
 
-void MainWindow::setDocumentDirty(bool dirty) {
+void MainWindow::setDocumentDirty(bool dirty)
+{
     isDirty = dirty;
     int index = ui->tabWidget->currentIndex();
-    if (index == -1) return;
+    if (index == -1)
+        return;
 
-    QWidget* currentTab = ui->tabWidget->widget(index);
+    QWidget *currentTab = ui->tabWidget->widget(index);
     currentTab->setProperty("isDirty", dirty);
 
     QString title = ui->tabWidget->tabText(index);
@@ -95,37 +112,48 @@ void MainWindow::setDocumentDirty(bool dirty) {
     }
 }
 
-void MainWindow::setupComponentList() {
-    QStringList gates = {"AND Gate", "OR Gate", "NAND Gate", "NOR Gate", "EXOR Gate", "EXNOR Gate", "NOT Gate"};
+void MainWindow::setupComponentList()
+{
+    QStringList gates
+        = {"AND Gate", "OR Gate", "NAND Gate", "NOR Gate", "EXOR Gate", "EXNOR Gate", "NOT Gate"};
     ui->componentList->addItems(gates);
 }
 
-void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
+void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
+{
     // Lấy scene của tab hiện tại
-    QGraphicsScene* s = getCurrentScene();
+    QGraphicsScene *s = getCurrentScene();
     if (!s) {
         qDebug() << "Không tìm thấy Scene hiện tại!";
         return;
     }
 
     QString text = item->text();
-    LogicGateItem* gate = nullptr;
+    LogicGateItem *gate = nullptr;
 
-    if (text == "AND Gate") gate = new LogicGateItem(LogicGateItem::AND);
-    else if (text == "OR Gate") gate = new LogicGateItem(LogicGateItem::OR);
-    else if (text == "NAND Gate") gate = new LogicGateItem(LogicGateItem::NAND);
-    else if (text == "NOR Gate") gate = new LogicGateItem(LogicGateItem::NOR);
-    else if (text == "EXOR Gate") gate = new LogicGateItem(LogicGateItem::EXOR);
-    else if (text == "EXNOR Gate") gate = new LogicGateItem(LogicGateItem::EXNOR);
-    else if (text == "NOT Gate") gate = new LogicGateItem(LogicGateItem::NOT);
+    if (text == "AND Gate")
+        gate = new LogicGateItem(LogicGateItem::AND);
+    else if (text == "OR Gate")
+        gate = new LogicGateItem(LogicGateItem::OR);
+    else if (text == "NAND Gate")
+        gate = new LogicGateItem(LogicGateItem::NAND);
+    else if (text == "NOR Gate")
+        gate = new LogicGateItem(LogicGateItem::NOR);
+    else if (text == "EXOR Gate")
+        gate = new LogicGateItem(LogicGateItem::EXOR);
+    else if (text == "EXNOR Gate")
+        gate = new LogicGateItem(LogicGateItem::EXNOR);
+    else if (text == "NOT Gate")
+        gate = new LogicGateItem(LogicGateItem::NOT);
 
     try {
         if (gate) {
             s->addItem(gate); // Thêm vào scene hiện tại
             if (!s->views().isEmpty()) {
-                QGraphicsView* currentView = s->views().first();
+                QGraphicsView *currentView = s->views().first();
                 // Tính toán vị trí tâm của view và chuyển sang tọa độ scene
-                QPointF centerPos = currentView->mapToScene(currentView->viewport()->width() / 2, currentView->viewport()->height() / 2);
+                QPointF centerPos = currentView->mapToScene(currentView->viewport()->width() / 2,
+                                                            currentView->viewport()->height() / 2);
                 gate->setPos(centerPos);
                 setDocumentDirty(true);
             } else {
@@ -138,7 +166,8 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item) {
     }
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
+void MainWindow::keyPressEvent(QKeyEvent *event)
+{
     if (event->key() == Qt::Key_W || event->text().toLower() == "w" || event->text() == "ư") {
         isWiringMode = !isWiringMode; // Đảo trạng thái
 
@@ -151,9 +180,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
         }
     }
     if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
-        QGraphicsScene* s = getCurrentScene();
-        QList<QGraphicsItem*> selected = s->selectedItems();
-        for (QGraphicsItem* item : selected) {
+        QGraphicsScene *s = getCurrentScene();
+        QList<QGraphicsItem *> selected = s->selectedItems();
+        for (QGraphicsItem *item : selected) {
             s->removeItem(item);
             delete item;
         }
@@ -163,12 +192,14 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 
 // --- SCENE ---
 // Hàm lấy Scene của Tab đang mở
-QGraphicsScene* MainWindow::getCurrentScene() {
-    QWidget* currentTab = ui->tabWidget->currentWidget();
-    if (!currentTab) return nullptr;
+QGraphicsScene *MainWindow::getCurrentScene()
+{
+    QWidget *currentTab = ui->tabWidget->currentWidget();
+    if (!currentTab)
+        return nullptr;
 
     // Tìm QtabWidget trong Tab hiện tại
-    QGraphicsView* view = currentTab->findChild<QGraphicsView*>();
+    QGraphicsView *view = currentTab->findChild<QGraphicsView *>();
 
     if (view && view->scene()) {
         return view->scene();
@@ -177,14 +208,15 @@ QGraphicsScene* MainWindow::getCurrentScene() {
     qDebug() << "Lỗi: Không tìm thấy QGraphicsView hoặc Scene trong Tab!";
     return nullptr;
 }
-void MainWindow::addNewTab(const QString &title) {
+void MainWindow::addNewTab(const QString &title)
+{
     // 1. Tạo View và Scene riêng cho Tab này
     QWidget *tabPage = new QWidget();
     QVBoxLayout *layout = new QVBoxLayout(tabPage);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    QGraphicsView* view = new QGraphicsView(tabPage);
-    QGraphicsScene* newScene = new QGraphicsScene(this);
+    QGraphicsView *view = new QGraphicsView(tabPage);
+    QGraphicsScene *newScene = new QGraphicsScene(this);
 
     newScene->setSceneRect(-1000, -1000, 2000, 2000);
     newScene->setBackgroundBrush(QBrush(QColor(245, 245, 245)));
@@ -202,27 +234,32 @@ void MainWindow::addNewTab(const QString &title) {
     ui->tabWidget->setCurrentIndex(index);
 }
 // --- FILE MENU ---
-void MainWindow::on_actionNew_triggered() {
+void MainWindow::on_actionNew_triggered()
+{
     addNewTab("Untitled " + QString::number(ui->tabWidget->count() + 1));
 }
-void MainWindow::on_actionOpen_triggered() {
+void MainWindow::on_actionOpen_triggered()
+{
     QString fileName = QFileDialog::getOpenFileName(this, "Open Circuit", "", "*.logic");
-    if (fileName.isEmpty()) return;
+    if (fileName.isEmpty())
+        return;
 
     QFile file(fileName);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) return;
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
 
     // Tạo tab mới để load nội dung
     addNewTab(QFileInfo(fileName).fileName());
-    QGraphicsScene* s = getCurrentScene();
+    QGraphicsScene *s = getCurrentScene();
 
     QTextStream in(&file);
-    QMap<int, LogicGateItem*> idToGate;
+    QMap<int, LogicGateItem *> idToGate;
     QString section = "";
 
     while (!in.atEnd()) {
         QString line = in.readLine().trimmed();
-        if (line.isEmpty()) continue;
+        if (line.isEmpty())
+            continue;
 
         if (line.startsWith("[")) {
             section = line;
@@ -244,7 +281,8 @@ void MainWindow::on_actionOpen_triggered() {
                 qreal y = parts[3].toDouble();
                 bool savedValue = (parts[4].toInt() == 1);
 
-                LogicGateItem* gate = new LogicGateItem(static_cast<LogicGateItem::GateType>(typeInt));
+                LogicGateItem *gate = new LogicGateItem(
+                    static_cast<LogicGateItem::GateType>(typeInt));
                 gate->setPos(x, y);
 
                 // Gán giá trị đọc được vào chân Output của cổng
@@ -256,21 +294,20 @@ void MainWindow::on_actionOpen_triggered() {
                 s->addItem(gate);
                 idToGate[id] = gate;
             }
-        }
-        else if (section == "[WIRES]" && tokens.size() >= 2) {
+        } else if (section == "[WIRES]" && tokens.size() >= 2) {
             QStringList parts = line.split(" ");
             if (parts.size() == 2) {
                 int startId = tokens[0].toInt();
                 int endId = tokens[1].toInt();
 
-                LogicGateItem* startGate = idToGate[startId];
-                LogicGateItem* endGate = idToGate[endId];
+                LogicGateItem *startGate = idToGate[startId];
+                LogicGateItem *endGate = idToGate[endId];
 
-                PinItem* outPin = startGate->getOutputPin();
-                PinItem* inPin = endGate->getInputPin(0);
+                PinItem *outPin = startGate->getOutputPin();
+                PinItem *inPin = endGate->getInputPin(0);
 
                 if (outPin && inPin) {
-                    WireItem* wire = new WireItem(outPin, inPin);
+                    WireItem *wire = new WireItem(outPin, inPin);
                     s->addItem(wire);
                     outPin->addWire(wire);
                     inPin->addWire(wire);
@@ -287,12 +324,15 @@ void MainWindow::on_actionOpen_triggered() {
     setDocumentDirty(false);
     ui->statusbar->showMessage("Đã mở file thành công!", 2000);
 }
-void MainWindow::on_actionSave_triggered() {
-    QGraphicsScene* s = getCurrentScene();
-    if (!s) return;
+void MainWindow::on_actionSave_triggered()
+{
+    QGraphicsScene *s = getCurrentScene();
+    if (!s)
+        return;
 
     QString fileName = QFileDialog::getSaveFileName(this, "Save Circuit", "", "*.logic");
-    if (fileName.isEmpty()) return;
+    if (fileName.isEmpty())
+        return;
 
     QFileInfo fileInfo(fileName);
     int currentIndex = ui->tabWidget->currentIndex();
@@ -302,30 +342,32 @@ void MainWindow::on_actionSave_triggered() {
     if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream out(&file);
         // 1. Lưu các Cổng (Gates)
-        QMap<LogicGateItem*, int> gateToId;
+        QMap<LogicGateItem *, int> gateToId;
         int idCounter = 0;
 
         out << "[GATES]\n";
-        for (QGraphicsItem* item : s->items()) {
-            LogicGateItem* gate = dynamic_cast<LogicGateItem*>(item);
+        for (QGraphicsItem *item : s->items()) {
+            LogicGateItem *gate = dynamic_cast<LogicGateItem *>(item);
             if (gate) {
                 gateToId[gate] = idCounter;
-                out << idCounter << " "
-                    << (int)gate->getGateType() << " "
-                    << gate->scenePos().x() << " " << gate->scenePos().y() << " "
-                    << (gate->getOutputValue() ? 1 : 0) << "\n";
+                out << idCounter << " " << (int) gate->getGateType() << " " << gate->scenePos().x()
+                    << " " << gate->scenePos().y() << " " << (gate->getOutputValue() ? 1 : 0)
+                    << "\n";
                 idCounter++;
             }
         }
         // 2. Lưu các Dây nối (Wires)
         out << "[WIRES]\n";
-        for (QGraphicsItem* item : s->items()) {
-            WireItem* wire = dynamic_cast<WireItem*>(item);
+        for (QGraphicsItem *item : s->items()) {
+            WireItem *wire = dynamic_cast<WireItem *>(item);
             if (wire) {
-                LogicGateItem* startGate = dynamic_cast<LogicGateItem*>(wire->getStartPin()->parentItem());
-                LogicGateItem* endGate = dynamic_cast<LogicGateItem*>(wire->getEndPin()->parentItem());
+                LogicGateItem *startGate = dynamic_cast<LogicGateItem *>(
+                    wire->getStartPin()->parentItem());
+                LogicGateItem *endGate = dynamic_cast<LogicGateItem *>(
+                    wire->getEndPin()->parentItem());
                 // Lưu tọa độ điểm đầu và điểm cuối của dây
-                if (startGate && endGate && gateToId.contains(startGate) && gateToId.contains(endGate)) {
+                if (startGate && endGate && gateToId.contains(startGate)
+                    && gateToId.contains(endGate)) {
                     out << gateToId[startGate] << " " << gateToId[endGate] << "\n";
                 }
             }
@@ -339,9 +381,11 @@ void MainWindow::on_actionSave_triggered() {
 }
 
 // --- CONFIG ---
-void MainWindow::on_actionConfig_triggered() {
-    QGraphicsScene* s = getCurrentScene();
-    if (!s) return;
+void MainWindow::on_actionConfig_triggered()
+{
+    QGraphicsScene *s = getCurrentScene();
+    if (!s)
+        return;
     QColor color = QColorDialog::getColor(Qt::white, this);
     if (color.isValid()) {
         s->setBackgroundBrush(color);
