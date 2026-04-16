@@ -15,10 +15,12 @@ public:
     PinItem *getEndPin() const { return m_endPin; };
     void updatePosition(); // Hàm then chốt: Để dây tự hít vào Pin
     void transmit();       // Hàm then chốt: Để truyền điện từ 0 sang 1
-
+    void removeSelf();
 private:
     PinItem *m_startPin;
     PinItem *m_endPin;
+protected:
+    void keyPressEvent(QKeyEvent *event) override;
 };
 
 #endif // WIRE_H

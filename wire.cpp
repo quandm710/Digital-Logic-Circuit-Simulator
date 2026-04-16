@@ -2,11 +2,14 @@
 #include "logicgateitem.h"
 #include <QPainterPath>
 #include <QGraphicsScene>
-WireItem::WireItem(PinItem* start, PinItem* end, QGraphicsItem* parent)
-    : QGraphicsPathItem(parent), m_startPin(start), m_endPin(end) {
-    setPen(QPen(Qt::blue, 2));
+#include <QKeyEvent>
+WireItem::WireItem(PinItem* start, PinItem* end, QGraphicsItem *parent)
+    : QGraphicsPathItem(parent), m_startPin(start), m_endPin(end)
+{
+    setFlag(QGraphicsItem::ItemIsSelectable);
+    setFlag(QGraphicsItem::ItemIsFocusable);
     setZValue(-1);
-    setAcceptedMouseButtons(Qt::NoButton);
+    // Đảm bảo dây cập nhật vị trí ngay khi vừa tạo ra
     updatePosition();
 }
 void WireItem::updatePosition() {
@@ -86,4 +89,25 @@ WireItem::~WireItem() {
     // Trước khi bị xóa, báo cho 2 đầu Pin gỡ mình ra khỏi danh sách quản lý
     if (m_startPin) m_startPin->removeWire(this);
     if (m_endPin) m_endPin->removeWire(this);
+}
+void WireItem::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
+        removeSelf();
+    } else {
+        QGraphicsPathItem::keyPressEvent(event);
+    }
+}
+
+void WireItem::removeSelf() {
+    if (m_startPin) {
+        m_startPin->removeWire(this);
+    }
+    if (m_endPin) {
+        m_endPin->removeWire(this);
+    }
+
+    if (scene()) {
+        scene()->removeItem(this);
+    }
+    this->deleteLater();
 }
