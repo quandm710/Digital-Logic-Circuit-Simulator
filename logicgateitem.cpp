@@ -6,6 +6,7 @@
 #include "mainwindow.h"
 #include "wire.h"
 #include <memory>
+
 // Constructor của LogicGateItem
 LogicGateItem::LogicGateItem(GateType type, QGraphicsItem *parent)
     : QGraphicsRectItem(parent)

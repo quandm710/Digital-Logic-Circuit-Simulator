@@ -62,7 +62,6 @@ public:
     void notifyWires();
     void setValue(bool v);
     bool value() const { return m_value; }
-
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
@@ -75,6 +74,7 @@ private:
     QPointF m_dragStartPosition;
     QGraphicsLineItem *m_tempWire = nullptr;
     QGraphicsTextItem *m_label = nullptr; // Nhãn hiển thị 0/1
+    QList<WireItem*> m_wires;
 };
 
 class LogicGateItem : public QGraphicsRectItem

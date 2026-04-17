@@ -2,53 +2,82 @@
 #include "logicgateitem.h"
 #include <QPainterPath>
 #include <QGraphicsScene>
-WireItem::WireItem(PinItem* start, PinItem* end, QGraphicsItem* parent)
-    : QGraphicsPathItem(parent), m_startPin(start), m_endPin(end) {
-    setPen(QPen(Qt::blue, 2));
+#include <QKeyEvent>
+WireItem::WireItem(PinItem* start, PinItem* end, QGraphicsItem *parent)
+    : QGraphicsPathItem(parent), m_startPin(start), m_endPin(end)
+{
+    setFlag(QGraphicsItem::ItemIsSelectable);
+    setFlag(QGraphicsItem::ItemIsFocusable);
     setZValue(-1);
-    setAcceptedMouseButtons(Qt::NoButton);
+    // Đảm bảo dây cập nhật vị trí ngay khi vừa tạo ra
     updatePosition();
 }
 void WireItem::updatePosition() {
     if (!m_startPin || !m_endPin) return;
+    // 1. Lấy thông tin vị trí và vùng bao quanh linh kiện
     QPointF p1 = m_startPin->mapToScene(m_startPin->boundingRect().center());
     QPointF p2 = m_endPin->mapToScene(m_endPin->boundingRect().center());
+    QGraphicsItem* startGate = m_startPin->parentItem();
+    QGraphicsItem* endGate = m_endPin->parentItem();
+    QRectF startRect = startGate->mapRectToScene(startGate->boundingRect());
+    QRectF endRect = endGate->mapRectToScene(endGate->boundingRect());
     QPainterPath path;
     path.moveTo(p1);
-    // 1. Phân loại dây dựa trên chân Input đích (trên hay dưới)
-    bool isUpperPin = (p2.y() < m_endPin->parentItem()->mapToScene(m_endPin->parentItem()->boundingRect().center()).y());
-    // 2. THIẾT LẬP KHOẢNG CÁCH TÁCH BIỆT (Tạo làn đường riêng)
-    // Sợi dây dưới sẽ thoát xa hơn và gập rộng hơn sợi dây trên
-    qreal exitOffset = isUpperPin ? 20 : 45;    // Chênh lệch 25px ở điểm thoát ngang
-    qreal bypassMargin = isUpperPin ? 30 : 55;  // Chênh lệch 25px ở độ rộng vòng né
-    qreal frontMargin = isUpperPin ? 25 : 40;   // So le điểm gập cuối trước khi vào Input
-    // Kiểm tra vị trí đích
-    if (p2.x() > p1.x() + 50) {
-        // --- TRƯỜNG HỢP CỔNG ĐÍCH BÊN PHẢI ---
-        qreal xBreak = p1.x() + exitOffset;
+    // --- HỆ THỐNG PHÂN LÀN (LANE) ---
+    // Dùng địa chỉ pin để tạo độ lệch 8px, 16px... giúp dây không bao giờ trùng nhau
+    int laneIdx = (reinterpret_cast<quintptr>(m_startPin) / 16) % 6;
+    qreal offset = laneIdx * 8;
+    // Kiểm tra loại kết nối
+    bool isInputToInput = (m_startPin->isInput() && m_endPin->isInput());
+    qreal deltaX = p2.x() - p1.x();
+    bool isUpperSource = (p1.y() < p2.y());
+    if (isInputToInput) {
+        // TRƯỜNG HỢP A: INPUT NỐI INPUT (Đi hình chữ U bên trái)
+        // Điểm gập bên trái: Lấy mép trái nhất của 2 cổng rồi lùi thêm một đoạn
+        qreal xLeft = qMin(startRect.left(), endRect.left()) - 20 - offset;
 
-        path.lineTo(xBreak, p1.y());
-        path.lineTo(xBreak, p2.y());
+        path.lineTo(xLeft, p1.y());
+        path.lineTo(xLeft, p2.y());
         path.lineTo(p2.x(), p2.y());
     }
     else {
-        // --- TRƯỜNG HỢP CỔNG ĐÍCH BÊN TRÁI (Đi vòng ziczac) ---
-        // Bước 1: Thoát ngang (Sợi dưới sẽ dài hơn sợi trên rõ rệt)
-        qreal xExit = p1.x() + exitOffset;
-        path.lineTo(xExit, p1.y());
-        // Bước 2: Gập dọc (Sợi trên gập xuống, sợi dưới gập lên)
-        // Dùng bypassMargin khác nhau để tạo 2 làn đường song song
-        qreal yBypass = isUpperPin ? (p1.y() + bypassMargin) : (p1.y() - bypassMargin);
-        path.lineTo(xExit, yBypass);
-        // Bước 3: Kéo ngang sang trái (Điểm dừng xWait cũng so le)
-        qreal xWait = p2.x() - frontMargin;
-        path.lineTo(xWait, yBypass);
-        // Bước 4: Gập dọc về cao độ chân đích
-        path.lineTo(xWait, p2.y());
-        // Bước 5: Nối thẳng vào chân Input
-        path.lineTo(p2.x(), p2.y());
+        // TRƯỜNG HỢP B: OUTPUT NỐI INPUT (Hoặc ngược lại)
+        // Điểm thoát an toàn khỏi cổng nguồn (phía bên phải)
+        qreal xExit = startRect.right() + 20 + offset;
+        // Kiểm tra xem đường đi từ xExit đến p2 có bị chặn không
+        // Chặn khi: Đích nằm bên trái HOẶC Đích nằm bên phải nhưng bị thân cổng đích che cao độ
+        bool isPathBlocked = (p2.x() < xExit + 20) ||
+                             (p1.y() > endRect.top() - 5 && p1.y() < endRect.bottom() + 5);
+
+        if (!isPathBlocked) {
+            // --- 1. ZICZAC 3 ĐOẠN (Đường thoáng - Ưu tiên của Khôi) ---
+            path.lineTo(xExit, p1.y());
+            path.lineTo(xExit, p2.y());
+            path.lineTo(p2.x(), p2.y());
+        }
+        else {
+            // --- 2. VÒNG TRÁNH 5 BƯỚC (Khi bị chặn hoặc đích nằm bên trái) ---
+            // Bước 1: Thoát ngang
+            path.lineTo(xExit, p1.y());
+            // Bước 2: Gập dọc lên/xuống hành lang an toàn
+            qreal yBypass;
+            if (isUpperSource) {
+                yBypass = qMin(startRect.top(), endRect.top()) - 25 - offset;
+            } else {
+                yBypass = qMax(startRect.bottom(), endRect.bottom()) + 25 + offset;
+            }
+            path.lineTo(xExit, yBypass);
+            // Bước 3: Chạy ngang lùi về phía sau (né cổng)
+            qreal xFarLeft = qMin(startRect.left(), endRect.left()) - 35 - offset;
+            path.lineTo(xFarLeft, yBypass);
+            // Bước 4: Gập dọc về cao độ chân đích
+            path.lineTo(xFarLeft, p2.y());
+            // Bước 5: Nối vào chân đích
+            path.lineTo(p2.x(), p2.y());
+        }
     }
     setPath(path);
+    setZValue(-1); // Dây luôn nằm dưới cổng
 }
 void WireItem::transmit() {
     if (!m_startPin || !m_endPin) return;
@@ -60,4 +89,25 @@ WireItem::~WireItem() {
     // Trước khi bị xóa, báo cho 2 đầu Pin gỡ mình ra khỏi danh sách quản lý
     if (m_startPin) m_startPin->removeWire(this);
     if (m_endPin) m_endPin->removeWire(this);
+}
+void WireItem::keyPressEvent(QKeyEvent *event) {
+    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
+        removeSelf();
+    } else {
+        QGraphicsPathItem::keyPressEvent(event);
+    }
+}
+
+void WireItem::removeSelf() {
+    if (m_startPin) {
+        m_startPin->removeWire(this);
+    }
+    if (m_endPin) {
+        m_endPin->removeWire(this);
+    }
+
+    if (scene()) {
+        scene()->removeItem(this);
+    }
+    this->deleteLater();
 }
