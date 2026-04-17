@@ -97,17 +97,13 @@ void WireItem::keyPressEvent(QKeyEvent *event) {
         QGraphicsPathItem::keyPressEvent(event);
     }
 }
-
 void WireItem::removeSelf() {
-    if (m_startPin) {
-        m_startPin->removeWire(this);
-    }
-    if (m_endPin) {
-        m_endPin->removeWire(this);
-    }
+    // Báo cho các Pin gỡ dây này ra khỏi danh sách quản lý của chúng
+    if (m_startPin) m_startPin->removeWire(this);
+    if (m_endPin) m_endPin->removeWire(this);
 
     if (scene()) {
         scene()->removeItem(this);
+        delete this;
     }
-    this->deleteLater();
 }
