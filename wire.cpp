@@ -99,7 +99,8 @@ WireItem::~WireItem() {
     if (m_endPin) m_endPin->removeWire(this);
 }
 void WireItem::keyPressEvent(QKeyEvent *event) {
-    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
+    if (event->isAutoRepeat()) return;
+    if (event->key() == Qt::Key_Delete) {
         removeSelf();
     } else {
         QGraphicsPathItem::keyPressEvent(event);

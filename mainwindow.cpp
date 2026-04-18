@@ -24,11 +24,6 @@ MainWindow::MainWindow(QWidget *parent)
     setupComponentList();
 
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
-    /*connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, [this](int index) {
-        QWidget* w = ui->tabWidget->widget(index);
-        ui->tabWidget->removeTab(index);
-        delete w; // Xóa để giải phóng bộ nhớ
-    });*/
 }
 
 MainWindow::~MainWindow()
@@ -123,7 +118,7 @@ void MainWindow::setupComponentList()
 void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
 {
     if (QApplication::mouseButtons() != Qt::LeftButton) {
-        return; 
+        return;
     }
     // Lấy scene của tab hiện tại
     QGraphicsScene *s = getCurrentScene();
@@ -172,6 +167,8 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    if (event->isAutoRepeat()) return;
+
     if (event->key() == Qt::Key_W || event->text().toLower() == "w" || event->text() == "ư") {
         isWiringMode = !isWiringMode; // Đảo trạng thái
 
@@ -182,14 +179,18 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             ui->statusbar->showMessage("Chế độ: TƯƠNG TÁC (Nhấn W để nối dây)", 2000);
             setCursor(Qt::ArrowCursor); // Trở về chuột bình thường
         }
+        return;
     }
-    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace) {
+    if (event->key() == Qt::Key_Delete) {
         QGraphicsScene *s = getCurrentScene();
-        QList<QGraphicsItem *> selected = s->selectedItems();
-        for (QGraphicsItem *item : selected) {
-            s->removeItem(item);
-            delete item;
+        if (s) {
+            QList<QGraphicsItem *> selected = s->selectedItems();
+            for (QGraphicsItem *item : selected) {
+                s->removeItem(item);
+                delete item;
+            }
         }
+        event->accept();
     }
     QMainWindow::keyPressEvent(event);
 }
