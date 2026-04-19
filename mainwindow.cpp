@@ -11,6 +11,9 @@
 #include "logicgateitem.h"
 #include "wire.h"
 #include <QApplication>
+#include <QStack>
+#include <QMap>
+#include <QShortcut>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)

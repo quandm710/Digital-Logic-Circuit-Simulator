@@ -22,6 +22,9 @@ public:
     void setDocumentDirty(bool dirty); // Hàm cập nhật trạng thái UI
     void onTabCloseRequested(int index);
     void closeEvent(QCloseEvent *event);
+    void saveStateForUndo(); 
+    void undo();
+    void redo();
 
 public slots:
     void keyPressEvent(QKeyEvent *event);
@@ -43,5 +46,9 @@ private:
     Ui::MainWindow *ui;
     QGraphicsScene *getCurrentScene();
     bool isDirty = false;
+    QMap<QGraphicsScene*, QStack<QString>> m_undoStacks;
+    QMap<QGraphicsScene*, QStack<QString>> m_redoStacks;
+    QString serializeScene(QGraphicsScene *s);
+    void deserializeScene(QGraphicsScene *s, const QString &data);
 };
 #endif // MAINWINDOW_H
