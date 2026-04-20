@@ -247,6 +247,7 @@ void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
         } // Chế độ tương tác
         else {
             if (m_isInput) {
+                if (mainWin) mainWin->saveStateForUndo();
                 setValue(!m_value); // Đảo giá trị 0/1
                 // Cập nhật logic cho cổng cha ngay lập tức
                 LogicGateItem *parentGate = dynamic_cast<LogicGateItem *>(parentItem());
@@ -295,6 +296,9 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
                     }
                     // Tạo dây chính thức
                     if (!exists && targetPin->parentItem() != this->parentItem()) {
+                        MainWindow *mainWin = qobject_cast<MainWindow *>(scene()->views().first()->window());
+                        if (mainWin) mainWin->saveStateForUndo(); 
+
                         WireItem *wire = new WireItem(this, targetPin);
                         scene()->addItem(wire);
 

@@ -26,6 +26,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupComponentList();
 
+    QShortcut *undoShortcut = new QShortcut(QKeySequence("Ctrl+Z"), this);
+    connect(undoShortcut, &QShortcut::activated, this, &MainWindow::undo);
+
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
 }
 
@@ -150,6 +153,7 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
 
     try {
         if (gate) {
+            saveStateForUndo();
             s->addItem(gate); // Thêm vào scene hiện tại
             if (!s->views().isEmpty()) {
                 QGraphicsView *currentView = s->views().first();
@@ -185,6 +189,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         return;
     }
     if (event->key() == Qt::Key_Delete) {
+        saveStateForUndo();
         QGraphicsScene *s = getCurrentScene();
         if (s) {
             QList<QGraphicsItem *> selected = s->selectedItems();
@@ -398,4 +403,117 @@ void MainWindow::on_actionConfig_triggered()
     if (color.isValid()) {
         s->setBackgroundBrush(color);
     }
+}
+QString MainWindow::serializeScene(QGraphicsScene *s)
+{
+    QString result;
+    QTextStream out(&result);
+
+    QMap<LogicGateItem *, int> gateToId;
+    int idCounter = 0;
+
+    out << "[GATES]\n";
+    for (QGraphicsItem *item : s->items()) {
+        LogicGateItem *gate = dynamic_cast<LogicGateItem *>(item);
+        if (gate) {
+            gateToId[gate] = idCounter;
+            out << idCounter << " " << (int)gate->getGateType() << " " 
+                << gate->scenePos().x() << " " << gate->scenePos().y() << " " 
+                << (gate->getOutputValue() ? 1 : 0) << "\n";
+            idCounter++;
+        }
+    }
+
+    out << "[WIRES]\n";
+    for (QGraphicsItem *item : s->items()) {
+        WireItem *wire = dynamic_cast<WireItem *>(item);
+        if (wire) {
+            LogicGateItem *startGate = dynamic_cast<LogicGateItem *>(wire->getStartPin()->parentItem());
+            LogicGateItem *endGate = dynamic_cast<LogicGateItem *>(wire->getEndPin()->parentItem());
+            if (startGate && endGate && gateToId.contains(startGate) && gateToId.contains(endGate)) {
+                out << gateToId[startGate] << " " << gateToId[endGate] << "\n";
+            }
+        }
+    }
+    return result;
+}
+void MainWindow::deserializeScene(QGraphicsScene *s, const QString &data)
+{
+    s->clear(); // Xóa sạch scene hiện tại
+    
+    QTextStream in(const_cast<QString*>(&data), QIODevice::ReadOnly);
+    QMap<int, LogicGateItem *> idToGate;
+    QString section = "";
+
+    while (!in.atEnd()) {
+        QString line = in.readLine().trimmed();
+        if (line.isEmpty()) continue;
+
+        if (line.startsWith("[")) {
+            section = line;
+            continue;
+        }
+
+        QStringList tokens = line.split(" ");
+        if (section == "[GATES]" && tokens.size() >= 5) {
+            int id = tokens[0].toInt();
+            int typeInt = tokens[1].toInt();
+            qreal x = tokens[2].toDouble();
+            qreal y = tokens[3].toDouble();
+            bool savedValue = (tokens[4].toInt() == 1);
+
+            LogicGateItem *gate = new LogicGateItem(static_cast<LogicGateItem::GateType>(typeInt));
+            gate->setPos(x, y);
+            if (gate->getOutputPin()) gate->getOutputPin()->setValue(savedValue);
+            gate->compute();
+
+            s->addItem(gate);
+            idToGate[id] = gate;
+        } else if (section == "[WIRES]" && tokens.size() >= 2) {
+            int startId = tokens[0].toInt();
+            int endId = tokens[1].toInt();
+
+            LogicGateItem *startGate = idToGate.value(startId);
+            LogicGateItem *endGate = idToGate.value(endId);
+
+            if (startGate && endGate) {
+                PinItem *outPin = startGate->getOutputPin();
+                PinItem *inPin = endGate->getInputPin(0); 
+                // Lưu ý: Code cũ của bạn auto lấy input 0, nếu cổng có 2 input thì bạn cần nâng cấp hàm Save/Open để lưu index của Pin nữa nhé.
+
+                if (outPin && inPin) {
+                    WireItem *wire = new WireItem(outPin, inPin);
+                    s->addItem(wire);
+                    outPin->addWire(wire);
+                    inPin->addWire(wire);
+                    wire->updatePosition();
+                    wire->transmit();
+                    endGate->compute();
+                }
+            }
+        }
+    }
+}void MainWindow::saveStateForUndo()
+{
+    QGraphicsScene *s = getCurrentScene();
+    if (!s) return;
+
+    QString currentState = serializeScene(s);
+    m_undoStacks[s].push(currentState);
+}
+
+void MainWindow::undo()
+{
+    QGraphicsScene *s = getCurrentScene();
+    if (!s || !m_undoStacks.contains(s) || m_undoStacks[s].isEmpty()) {
+        ui->statusbar->showMessage("Không có hành động nào để Undo", 2000);
+        return;
+    }
+
+    QString previousState = m_undoStacks[s].pop();
+    
+    deserializeScene(s, previousState);
+    
+    ui->statusbar->showMessage("Đã Undo", 2000);
+    setDocumentDirty(true);
 }
