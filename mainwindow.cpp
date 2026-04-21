@@ -29,6 +29,9 @@ MainWindow::MainWindow(QWidget *parent)
     QShortcut *undoShortcut = new QShortcut(QKeySequence("Ctrl+Z"), this);
     connect(undoShortcut, &QShortcut::activated, this, &MainWindow::undo);
 
+    QShortcut *redoShortcut = new QShortcut(QKeySequence("Ctrl+Y"), this);
+    connect(redoShortcut, &QShortcut::activated, this, &MainWindow::redo);
+
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
 }
 
@@ -192,6 +195,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         saveStateForUndo();
         QGraphicsScene *s = getCurrentScene();
         if (s) {
+            saveStateForUndo();
             QList<QGraphicsItem *> selected = s->selectedItems();
             for (QGraphicsItem *item : selected) {
                 s->removeItem(item);
@@ -437,9 +441,10 @@ QString MainWindow::serializeScene(QGraphicsScene *s)
     }
     return result;
 }
+
 void MainWindow::deserializeScene(QGraphicsScene *s, const QString &data)
 {
-    s->clear(); // Xóa sạch scene hiện tại
+    s->clear(); // Xóa sạch scene 
     
     QTextStream in(const_cast<QString*>(&data), QIODevice::ReadOnly);
     QMap<int, LogicGateItem *> idToGate;
@@ -479,7 +484,6 @@ void MainWindow::deserializeScene(QGraphicsScene *s, const QString &data)
             if (startGate && endGate) {
                 PinItem *outPin = startGate->getOutputPin();
                 PinItem *inPin = endGate->getInputPin(0); 
-                // Lưu ý: Code cũ của bạn auto lấy input 0, nếu cổng có 2 input thì bạn cần nâng cấp hàm Save/Open để lưu index của Pin nữa nhé.
 
                 if (outPin && inPin) {
                     WireItem *wire = new WireItem(outPin, inPin);
@@ -493,13 +497,15 @@ void MainWindow::deserializeScene(QGraphicsScene *s, const QString &data)
             }
         }
     }
-}void MainWindow::saveStateForUndo()
+}
+void MainWindow::saveStateForUndo()
 {
     QGraphicsScene *s = getCurrentScene();
     if (!s) return;
 
     QString currentState = serializeScene(s);
     m_undoStacks[s].push(currentState);
+    m_redoStacks[s].clear(); 
 }
 
 void MainWindow::undo()
@@ -510,10 +516,32 @@ void MainWindow::undo()
         return;
     }
 
+    QString currentState = serializeScene(s);
+    m_redoStacks[s].push(currentState);
+
     QString previousState = m_undoStacks[s].pop();
-    
+
     deserializeScene(s, previousState);
     
     ui->statusbar->showMessage("Đã Undo", 2000);
+    setDocumentDirty(true);
+}
+void MainWindow::redo()
+{
+    QGraphicsScene *s = getCurrentScene();
+    
+    if (!s || !m_redoStacks.contains(s) || m_redoStacks[s].isEmpty()) {
+        ui->statusbar->showMessage("Không có hành động nào để Redo", 2000);
+        return;
+    }
+
+    QString currentState = serializeScene(s);
+    m_undoStacks[s].push(currentState);
+
+    QString nextState = m_redoStacks[s].pop();
+
+    deserializeScene(s, nextState);
+    
+    ui->statusbar->showMessage("Đã Redo", 2000);
     setDocumentDirty(true);
 }

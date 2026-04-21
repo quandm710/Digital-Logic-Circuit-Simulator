@@ -249,7 +249,7 @@ void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
             if (m_isInput) {
                 if (mainWin) mainWin->saveStateForUndo();
                 setValue(!m_value); // Đảo giá trị 0/1
-                // Cập nhật logic cho cổng cha ngay lập tức
+
                 LogicGateItem *parentGate = dynamic_cast<LogicGateItem *>(parentItem());
                 if (parentGate) {
                     parentGate->compute();
@@ -258,7 +258,6 @@ void PinItem::mousePressEvent(QGraphicsSceneMouseEvent *event)
             event->accept();
         }
     } else {
-        // Nếu nhấn chuột phải hoặc nút khác: bỏ qua để tránh gây xung đột
         event->ignore();
     }
 }
