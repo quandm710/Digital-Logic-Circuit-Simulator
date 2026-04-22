@@ -15,25 +15,26 @@
 #include <QMap>
 #include <QShortcut>
 
-class CustomScene : public QGraphicsScene {
+class GridItem : public QGraphicsItem {
 public:
-    CustomScene(QObject *parent = nullptr) : QGraphicsScene(parent) {}
-protected:
-    void drawBackground(QPainter *painter, const QRectF &rect) override {
-        QGraphicsScene::drawBackground(painter, rect);
-        
-        int gridSize = 20;
-        QPen pen(Qt::black); // Lưới màu đen
-        pen.setWidth(1);     // Nét liền
+    GridItem() {
+        setZValue(-1000);
+    }
+    QRectF boundingRect() const override {
+        return QRectF(-1000, -1000, 2000, 2000);
+    }
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *, QWidget *) override {
+        int gridSize = 20; // Kích thước ô lưới
+        QPen pen(Qt::black); // Lưới đen nét liền
+        pen.setWidth(1);
         painter->setPen(pen);
-
-        int left = int(rect.left()) - (int(rect.left()) % gridSize);
-        int top = int(rect.top()) - (int(rect.top()) % gridSize);
-
-        for (int x = left; x < rect.right(); x += gridSize) {
+        QRectF rect = boundingRect();
+        // Vẽ các đường dọc
+        for (int x = rect.left(); x <= rect.right(); x += gridSize) {
             painter->drawLine(x, rect.top(), x, rect.bottom());
         }
-        for (int y = top; y < rect.bottom(); y += gridSize) {
+        // Vẽ các đường ngang
+        for (int y = rect.top(); y <= rect.bottom(); y += gridSize) {
             painter->drawLine(rect.left(), y, rect.right(), y);
         }
     }
