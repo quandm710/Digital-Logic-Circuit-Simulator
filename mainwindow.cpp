@@ -263,6 +263,8 @@ void MainWindow::addNewTab(const QString &title)
     newScene->setSceneRect(-1000, -1000, 2000, 2000);
     newScene->setBackgroundBrush(QBrush(QColor(245, 245, 245)));
 
+    newScene->addItem(new GridItem());
+
     view->setScene(newScene);
     view->setRenderHint(QPainter::Antialiasing);
     view->setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
