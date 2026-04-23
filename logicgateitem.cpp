@@ -86,6 +86,18 @@ LogicGateItem::~LogicGateItem()
 }
 QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &value)
 {
+
+if (change == ItemPositionChange && scene()) {
+        QPointF newPos = value.toPointF();
+        int gridSize = 20;
+        
+        // Làm tròn tọa độ về bội số của 20
+        qreal xFixed = std::round(newPos.x() / gridSize) * gridSize;
+        qreal yFixed = std::round(newPos.y() / gridSize) * gridSize;
+        
+        return QPointF(xFixed, yFixed);
+    }
+
     if (change == ItemPositionHasChanged) {
         // Mỗi khi cổng di chuyển, bảo các chân Pin hãy kéo dây theo
         for (auto pin : m_inputs)
