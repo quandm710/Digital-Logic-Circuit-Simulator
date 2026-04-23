@@ -89,8 +89,7 @@ QVariant LogicGateItem::itemChange(GraphicsItemChange change, const QVariant &va
 
 if (change == ItemPositionChange && scene()) {
         QPointF newPos = value.toPointF();
-        int gridSize = 20;
-        
+        int gridSize = 60;
         // Làm tròn tọa độ về bội số của 20
         qreal xFixed = std::round(newPos.x() / gridSize) * gridSize;
         qreal yFixed = std::round(newPos.y() / gridSize) * gridSize;
