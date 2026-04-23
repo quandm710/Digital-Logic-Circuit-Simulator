@@ -258,7 +258,7 @@ void MainWindow::addNewTab(const QString &title)
     layout->setContentsMargins(0, 0, 0, 0);
 
     QGraphicsView *view = new QGraphicsView(tabPage);
-    QGraphicsScene *newScene = new QGraphicsScene(this);
+    CustomScene *newScene = new CustomScene(this);
 
     newScene->setSceneRect(-1000, -1000, 2000, 2000);
     newScene->setBackgroundBrush(QBrush(QColor(245, 245, 245)));
