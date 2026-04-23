@@ -340,15 +340,18 @@ void MainWindow::on_actionOpen_triggered()
             }
         } else if (section == "[WIRES]" && tokens.size() >= 2) {
             QStringList parts = line.split(" ");
-            if (parts.size() == 2) {
-                int startId = tokens[0].toInt();
-                int endId = tokens[1].toInt();
+            if (parts.size() >= 2) {
+                int startId = parts[0].toInt();
+                int endId = parts[1].toInt();
+
+                int inPinIndex = (parts.size() >= 3) ? parts[2].toInt() : 0;
 
                 LogicGateItem *startGate = idToGate[startId];
                 LogicGateItem *endGate = idToGate[endId];
 
                 PinItem *outPin = startGate->getOutputPin();
-                PinItem *inPin = endGate->getInputPin(0);
+
+                PinItem *inPin = endGate->getInputPin(inPinIndex); 
 
                 if (outPin && inPin) {
                     WireItem *wire = new WireItem(outPin, inPin);
@@ -368,6 +371,7 @@ void MainWindow::on_actionOpen_triggered()
     setDocumentDirty(false);
     ui->statusbar->showMessage("Đã mở file thành công!", 2000);
 }
+
 void MainWindow::on_actionSave_triggered()
 {
     QGraphicsScene *s = getCurrentScene();
@@ -405,14 +409,18 @@ void MainWindow::on_actionSave_triggered()
         for (QGraphicsItem *item : s->items()) {
             WireItem *wire = dynamic_cast<WireItem *>(item);
             if (wire) {
-                LogicGateItem *startGate = dynamic_cast<LogicGateItem *>(
-                    wire->getStartPin()->parentItem());
-                LogicGateItem *endGate = dynamic_cast<LogicGateItem *>(
-                    wire->getEndPin()->parentItem());
-                // Lưu tọa độ điểm đầu và điểm cuối của dây
-                if (startGate && endGate && gateToId.contains(startGate)
-                    && gateToId.contains(endGate)) {
-                    out << gateToId[startGate] << " " << gateToId[endGate] << "\n";
+                PinItem *outPin = wire->getStartPin()->isInput() ? wire->getEndPin() : wire->getStartPin();
+                PinItem *inPin = wire->getStartPin()->isInput() ? wire->getStartPin() : wire->getEndPin();
+
+                LogicGateItem *startGate = dynamic_cast<LogicGateItem *>(outPin->parentItem());
+                LogicGateItem *endGate = dynamic_cast<LogicGateItem *>(inPin->parentItem());
+
+                if (startGate && endGate && gateToId.contains(startGate) && gateToId.contains(endGate)) {
+                    int inPinIndex = 0;
+                    if (endGate->getInputPin(1) == inPin) {
+                        inPinIndex = 1;
+                    }
+                    out << gateToId[startGate] << " " << gateToId[endGate] << " " << inPinIndex << "\n";
                 }
             }
         }
@@ -459,10 +467,19 @@ QString MainWindow::serializeScene(QGraphicsScene *s)
     for (QGraphicsItem *item : s->items()) {
         WireItem *wire = dynamic_cast<WireItem *>(item);
         if (wire) {
-            LogicGateItem *startGate = dynamic_cast<LogicGateItem *>(wire->getStartPin()->parentItem());
-            LogicGateItem *endGate = dynamic_cast<LogicGateItem *>(wire->getEndPin()->parentItem());
+            PinItem *outPin = wire->getStartPin()->isInput() ? wire->getEndPin() : wire->getStartPin();
+            PinItem *inPin = wire->getStartPin()->isInput() ? wire->getStartPin() : wire->getEndPin();
+
+            LogicGateItem *startGate = dynamic_cast<LogicGateItem *>(outPin->parentItem());
+            LogicGateItem *endGate = dynamic_cast<LogicGateItem *>(inPin->parentItem());
+
             if (startGate && endGate && gateToId.contains(startGate) && gateToId.contains(endGate)) {
-                out << gateToId[startGate] << " " << gateToId[endGate] << "\n";
+                int inPinIndex = 0;
+                if (endGate->getInputPin(1) == inPin) {
+                    inPinIndex = 1;
+                }
+                
+                out << gateToId[startGate] << " " << gateToId[endGate] << " " << inPinIndex << "\n";
             }
         }
     }
@@ -501,16 +518,19 @@ void MainWindow::deserializeScene(QGraphicsScene *s, const QString &data)
 
             s->addItem(gate);
             idToGate[id] = gate;
-        } else if (section == "[WIRES]" && tokens.size() >= 2) {
+        }else if (section == "[WIRES]" && tokens.size() >= 2) {
             int startId = tokens[0].toInt();
             int endId = tokens[1].toInt();
+            
+            int inPinIndex = (tokens.size() >= 3) ? tokens[2].toInt() : 0; 
 
             LogicGateItem *startGate = idToGate.value(startId);
             LogicGateItem *endGate = idToGate.value(endId);
 
             if (startGate && endGate) {
                 PinItem *outPin = startGate->getOutputPin();
-                PinItem *inPin = endGate->getInputPin(0); 
+
+                PinItem *inPin = endGate->getInputPin(inPinIndex); 
 
                 if (outPin && inPin) {
                     WireItem *wire = new WireItem(outPin, inPin);
