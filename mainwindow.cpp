@@ -196,9 +196,20 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
                 QPointF centerPos = currentView->mapToScene(currentView->viewport()->width() / 2,
                                                             currentView->viewport()->height() / 2);
                 
-                static int offsetCount = 0; 
-                centerPos.setY(centerPos.y() + (offsetCount * 60));
-                offsetCount = (offsetCount + 1) % 4;
+                static int spawnIndex = 0; 
+                
+                // Phân bổ vào lưới ma trận 5x5 (tổng cộng 25 vị trí)
+                int col = spawnIndex % 5; // Cột: chạy từ 0 đến 4
+                int row = spawnIndex / 5; // Hàng: chạy từ 0 đến 4
+                
+                int offsetX = (col - 2) * 60; 
+                int offsetY = (row - 2) * 60;
+
+                centerPos.setX(centerPos.x() + offsetX);
+                centerPos.setY(centerPos.y() + offsetY);
+                
+                // Tăng biến đếm, sinh đủ 25 cổng thì reset lặp lại
+                spawnIndex = (spawnIndex + 1) % 25;
                 
                 gate->setPos(centerPos);
                 setDocumentDirty(true);
