@@ -15,7 +15,7 @@
 #include <QMap>
 #include <QShortcut>
 #include <QRandomGenerator>
-
+#include <QWheelEvent> 
 class CustomScene : public QGraphicsScene {
 public:
     CustomScene(QObject *parent = nullptr) : QGraphicsScene(parent) {}
@@ -281,6 +281,9 @@ void MainWindow::addNewTab(const QString &title)
     QGraphicsView *view = new QGraphicsView(tabPage);
     view->setResizeAnchor(QGraphicsView::AnchorViewCenter);
     
+    view->viewport()->installEventFilter(this);
+    view->setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
+
     QVBoxLayout *layout = new QVBoxLayout(tabPage);
     layout->setContentsMargins(0, 0, 0, 0);
 
@@ -615,4 +618,58 @@ void MainWindow::on_actionRedo_triggered()
     ui->statusbar->showMessage("Đã Redo", 2000);
     setDocumentDirty(true);
 }
+QGraphicsView *MainWindow::getCurrentView()
+{
+    QWidget *currentTab = ui->tabWidget->currentWidget();
+    if (!currentTab)
+        return nullptr;
 
+    return currentTab->findChild<QGraphicsView *>();
+}
+void MainWindow::on_actionZoomIn_triggered()
+{
+    QGraphicsView *view = getCurrentView();
+    if (view) {
+        view->scale(1.2, 1.2);
+    }
+}
+
+void MainWindow::on_actionZoomOut_triggered()
+{
+    QGraphicsView *view = getCurrentView();
+    if (view) {
+        view->scale(1.0 / 1.2, 1.0 / 1.2);
+    }
+}
+
+void MainWindow::on_actionZoomReset_triggered()
+{
+    QGraphicsView *view = getCurrentView();
+    if (view && view->scene()) {
+        view->resetTransform();
+
+        QRectF itemsArea = view->scene()->itemsBoundingRect();
+
+        if (!itemsArea.isEmpty() && !itemsArea.isNull()) {
+            view->centerOn(itemsArea.center());
+        } else {
+            view->centerOn(0, 0);
+        }
+    }
+}
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::Wheel) {
+        if (QApplication::keyboardModifiers() == Qt::ControlModifier) {
+            QWheelEvent *wheelEvent = static_cast<QWheelEvent *>(event);
+            if (wheelEvent->angleDelta().y() > 0) {
+                on_actionZoomIn_triggered();
+            } else { 
+                on_actionZoomOut_triggered();
+            }
+
+            return true; 
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
+}

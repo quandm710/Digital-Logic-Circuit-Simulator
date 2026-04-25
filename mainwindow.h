@@ -14,7 +14,8 @@ QT_END_NAMESPACE
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
-
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
@@ -41,6 +42,12 @@ private slots:
 
     void on_actionRedo_triggered();
 
+    void on_actionZoomIn_triggered();
+
+    void on_actionZoomOut_triggered();
+    
+    void on_actionZoomReset_triggered();
+
 private:
     bool isWiringMode = false;
     void setupComponentList(); // Hàm bổ trợ
@@ -52,5 +59,6 @@ private:
     QMap<QGraphicsScene*, QStack<QString>> m_redoStacks;
     QString serializeScene(QGraphicsScene *s);
     void deserializeScene(QGraphicsScene *s, const QString &data);
+    QGraphicsView *getCurrentView();
 };
 #endif // MAINWINDOW_H
