@@ -14,6 +14,7 @@
 #include <QStack>
 #include <QMap>
 #include <QShortcut>
+#include <QRandomGenerator>
 
 class CustomScene : public QGraphicsScene {
 public:
