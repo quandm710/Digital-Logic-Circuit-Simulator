@@ -45,6 +45,18 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    if (ui->centralwidget->layout()) {
+        delete ui->centralwidget->layout();
+    }
+
+    //Phá bỏ mọi giới hạn kích thước
+    ui->tabWidget->setMaximumSize(16777215, 16777215);
+    ui->tabWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    //Layout mới bọc kín toàn bộkhông gian
+    QVBoxLayout *mainLayout = new QVBoxLayout(ui->centralwidget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->addWidget(ui->tabWidget);
     ui->tabWidget->setTabsClosable(true);
 
     addNewTab("Untitled 1");
