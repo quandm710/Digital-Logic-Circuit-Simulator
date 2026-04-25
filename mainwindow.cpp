@@ -260,10 +260,13 @@ void MainWindow::addNewTab(const QString &title)
 {
     // 1. Tạo View và Scene riêng cho Tab này
     QWidget *tabPage = new QWidget();
+
+    QGraphicsView *view = new QGraphicsView(tabPage);
+    view->setResizeAnchor(QGraphicsView::AnchorViewCenter);
+    
     QVBoxLayout *layout = new QVBoxLayout(tabPage);
     layout->setContentsMargins(0, 0, 0, 0);
 
-    QGraphicsView *view = new QGraphicsView(tabPage);
     CustomScene *newScene = new CustomScene(this);
 
     newScene->setSceneRect(-5000, -5000, 10000, 10000);
