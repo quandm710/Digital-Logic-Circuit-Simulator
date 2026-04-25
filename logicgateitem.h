@@ -97,6 +97,9 @@ public:
     void compute();
     void deleteWireOfPin(PinItem *pin);
 
+    QRectF boundingRect() const override;
+    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+
 protected:
     QVariant itemChange(GraphicsItemChange change, const QVariant &value) override;
 

@@ -16,6 +16,7 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem *parent)
     setRect(0, 0, 80, 50);
     setBrush(QBrush(QColor(230, 240, 250)));
     setPen(QPen(Qt::black, 2));
+    setCacheMode(QGraphicsItem::DeviceCoordinateCache);
     setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable
              | QGraphicsItem::ItemSendsGeometryChanges);
 
@@ -52,19 +53,6 @@ LogicGateItem::LogicGateItem(GateType type, QGraphicsItem *parent)
         break;
     }
 
-    auto text = new QGraphicsTextItem(name, this);
-    // 1. Tạo Font chữ đậm (Bold)
-    QFont font = text->font();
-    font.setBold(true);
-    font.setPointSize(10); // Có thể tăng kích thước nếu muốn
-    text->setFont(font);
-
-    // 2. Đổi màu chữ sang xanh đậm (Dark Blue) cho dễ nhìn
-    text->setDefaultTextColor(QColor(0, 51, 102));
-
-    // 3. Căn giữa chữ vào giữa cổng 80x50
-    QRectF textRect = text->boundingRect();
-    text->setPos((80 - textRect.width()) / 2, (50 - textRect.height()) / 2);
     int inputCount = (type == NOT) ? 1 : 2;
     for (int i = 0; i < inputCount; ++i) {
         PinItem *pin = new PinItem(true, this);
@@ -330,4 +318,121 @@ void PinItem::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
         }
     }
     QGraphicsEllipseItem::mouseReleaseEvent(event);
+}
+QRectF LogicGateItem::boundingRect() const
+{
+    // Khung bao quanh (Bounding Box) vẫn là 80x50 để dễ click chọn
+    return QRectF(0, 0, 80, 50);
+}
+
+void LogicGateItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+{
+    Q_UNUSED(option);
+    Q_UNUSED(widget);
+
+    // Khử răng cưa cho nét vẽ mịn màng
+    painter->setRenderHint(QPainter::Antialiasing);
+
+    // Cài đặt màu viền (Nếu cổng đang được chọn thì viền đỏ, bình thường viền đen)
+    if (isSelected()) {
+        painter->setPen(QPen(Qt::red, 2, Qt::DashLine));
+    } else {
+        painter->setPen(QPen(Qt::black, 2));
+    }
+    
+    // Cài đặt màu nền cho cổng
+    painter->setBrush(QBrush(QColor(230, 240, 250)));
+
+    QPainterPath path;
+    bool hasInversionCircle = false;
+    int rightEdgeX = 65; // Điểm tụ lại ở bên phải của thân cổng
+
+    switch (m_type) {
+    case AND:
+    case NAND:
+        // Cổng AND: Phẳng bên trái, cong hình bán nguyệt bên phải
+        path.moveTo(20, 5);
+        path.lineTo(45, 5);
+        path.arcTo(25, 5, 40, 40, 90, -180); // Cung tròn bên phải
+        path.lineTo(20, 45);
+        path.closeSubpath();
+        
+        // Vẽ 2 đoạn dây nối từ rìa trái (x=20) ra chân Pin (x=10)
+        painter->drawLine(10, 15, 20, 15);
+        painter->drawLine(10, 35, 20, 35);
+        
+        if (m_type == NAND) hasInversionCircle = true;
+        break;
+
+    case OR:
+    case NOR:
+        // Cổng OR: Cong vòm mông bên trái, nhọn 2 đầu kéo về một điểm bên phải
+        path.moveTo(15, 5);
+        path.quadTo(45, 5, rightEdgeX, 25);   // Đường cong trên
+        path.quadTo(45, 45, 15, 45);          // Đường cong dưới
+        path.quadTo(30, 25, 15, 5);           // Đường cong lõm ở đáy (bên trái)
+        
+        // Đoạn dây nối từ đầu Pin vào sát phần lõm của cổng OR
+        painter->drawLine(10, 15, 20, 15);
+        painter->drawLine(10, 35, 20, 35);
+        
+        if (m_type == NOR) hasInversionCircle = true;
+        break;
+
+    case EXOR:
+    case EXNOR:
+        // Cổng XOR: Giống OR nhưng nhích sang phải một chút và có thêm 1 đường cong phụ đằng sau
+        path.moveTo(22, 5);
+        path.quadTo(52, 5, rightEdgeX, 25);
+        path.quadTo(52, 45, 22, 45);
+        path.quadTo(37, 25, 22, 5);
+        
+        // Vẽ đường cong phụ (chỉ là đường viền, không tô màu đoạn này)
+        painter->drawPath(path); 
+        path = QPainterPath(); // Reset path để không bị lặp
+        
+        { // Khối ngoặc này để giới hạn biến
+            QPainterPath extraCurve;
+            extraCurve.moveTo(15, 5);
+            extraCurve.quadTo(30, 25, 15, 45);
+            painter->drawPath(extraCurve);
+        }
+        
+        // Dây cắm xuyên qua đường viền phụ vào cổng
+        painter->drawLine(10, 15, 24, 15);
+        painter->drawLine(10, 35, 24, 35);
+        
+        if (m_type == EXNOR) hasInversionCircle = true;
+        break;
+
+    case NOT:
+        // Cổng NOT: Hình tam giác
+        path.moveTo(25, 10);
+        path.lineTo(25, 40);
+        path.lineTo(55, 25);
+        path.closeSubpath();
+        
+        // Nối dây đầu vào (chỉ có 1 chân ở giữa)
+        painter->drawLine(10, 25, 25, 25);
+        
+        hasInversionCircle = true;
+        rightEdgeX = 55;
+        break;
+    }
+
+    // Vẽ path (thân cổng logic) lên Scene
+    if (!path.isEmpty()) {
+        painter->drawPath(path);
+    }
+
+    // Xử lý vẽ vòng tròn phủ định (Inversion Circle) cho NAND, NOR, EXNOR, NOT
+    if (hasInversionCircle) {
+        painter->setBrush(Qt::white); // Vòng tròn rỗng ruột
+        painter->drawEllipse(rightEdgeX, 21, 8, 8); // Đường kính = 8
+        // Dây nối từ vòng tròn ra chân output
+        painter->drawLine(rightEdgeX + 8, 25, 70, 25); 
+    } else {
+        // Nếu không có vòng tròn thì nối thẳng từ thân cổng ra chân output
+        painter->drawLine(rightEdgeX, 25, 70, 25);
+    }
 }
