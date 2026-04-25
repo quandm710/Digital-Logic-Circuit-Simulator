@@ -194,6 +194,11 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
                 // Tính toán vị trí tâm của view và chuyển sang tọa độ scene
                 QPointF centerPos = currentView->mapToScene(currentView->viewport()->width() / 2,
                                                             currentView->viewport()->height() / 2);
+                
+                static int offsetCount = 0; 
+                centerPos.setY(centerPos.y() + (offsetCount * 60));
+                offsetCount = (offsetCount + 1) % 4;
+                
                 gate->setPos(centerPos);
                 setDocumentDirty(true);
             } else {
