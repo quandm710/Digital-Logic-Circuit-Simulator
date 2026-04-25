@@ -1,6 +1,5 @@
 #ifndef LOGICGATEITEM_H
 #define LOGICGATEITEM_H
-
 #include <QBrush>
 #include <QFont>
 #include <QGraphicsEllipseItem>
