@@ -51,12 +51,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     setupComponentList();
 
-    QShortcut *undoShortcut = new QShortcut(QKeySequence("Ctrl+Z"), this);
-    connect(undoShortcut, &QShortcut::activated, this, &MainWindow::undo);
-
-    QShortcut *redoShortcut = new QShortcut(QKeySequence("Ctrl+Y"), this);
-    connect(redoShortcut, &QShortcut::activated, this, &MainWindow::redo);
-
     connect(ui->tabWidget, &QTabWidget::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
 }
 
@@ -550,10 +544,9 @@ void MainWindow::saveStateForUndo()
 
     QString currentState = serializeScene(s);
     m_undoStacks[s].push(currentState);
-    m_redoStacks[s].clear(); 
+    m_redoStacks[s].clear();
 }
-
-void MainWindow::undo()
+void MainWindow::on_actionUndo_triggered()
 {
     QGraphicsScene *s = getCurrentScene();
     if (!s || !m_undoStacks.contains(s) || m_undoStacks[s].isEmpty()) {
@@ -567,14 +560,14 @@ void MainWindow::undo()
     QString previousState = m_undoStacks[s].pop();
 
     deserializeScene(s, previousState);
-    
+
     ui->statusbar->showMessage("Đã Undo", 2000);
     setDocumentDirty(true);
 }
-void MainWindow::redo()
+void MainWindow::on_actionRedo_triggered()
 {
     QGraphicsScene *s = getCurrentScene();
-    
+
     if (!s || !m_redoStacks.contains(s) || m_redoStacks[s].isEmpty()) {
         ui->statusbar->showMessage("Không có hành động nào để Redo", 2000);
         return;
@@ -586,7 +579,8 @@ void MainWindow::redo()
     QString nextState = m_redoStacks[s].pop();
 
     deserializeScene(s, nextState);
-    
+
     ui->statusbar->showMessage("Đã Redo", 2000);
     setDocumentDirty(true);
 }
+

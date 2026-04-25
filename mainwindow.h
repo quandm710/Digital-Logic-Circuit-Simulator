@@ -22,9 +22,7 @@ public:
     void setDocumentDirty(bool dirty); // Hàm cập nhật trạng thái UI
     void onTabCloseRequested(int index);
     void closeEvent(QCloseEvent *event);
-    void saveStateForUndo(); 
-    void undo();
-    void redo();
+    void saveStateForUndo();
 
 public slots:
     void keyPressEvent(QKeyEvent *event);
@@ -38,6 +36,10 @@ private slots:
     void on_actionSave_triggered();
 
     void on_actionConfig_triggered();
+
+    void on_actionUndo_triggered();
+
+    void on_actionRedo_triggered();
 
 private:
     bool isWiringMode = false;
