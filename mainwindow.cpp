@@ -196,20 +196,29 @@ void MainWindow::on_componentList_itemPressed(QListWidgetItem *item)
                 QPointF centerPos = currentView->mapToScene(currentView->viewport()->width() / 2,
                                                             currentView->viewport()->height() / 2);
                 
-                static int spawnIndex = 0; 
                 
-                // Phân bổ vào lưới ma trận 5x5 (tổng cộng 25 vị trí)
-                int col = spawnIndex % 5; // Cột: chạy từ 0 đến 4
-                int row = spawnIndex / 5; // Hàng: chạy từ 0 đến 4
+                int offsetX = 0;
+                int offsetY = 0;
                 
-                int offsetX = (col - 2) * 60; 
-                int offsetY = (row - 2) * 60;
+                // Thử tối đa 20 lần để tìm một chỗ trống quanh tâm
+                for (int i = 0; i < 20; ++i) {
+                    int randomCol = QRandomGenerator::global()->bounded(-2, 3); 
+                    int randomRow = QRandomGenerator::global()->bounded(-2, 2); 
+                    
+                    // Nhân với 120 để mạch thoáng hơn
+                    offsetX = randomCol * 120; 
+                    offsetY = randomRow * 120;
+                    
+                    QPointF testPos(centerPos.x() + offsetX, centerPos.y() + offsetY);
+                    
+                    // Kiểm tra xem tại vùng không gian này đã có cổng nào đang đứng chưa
+                    if (s->items(QRectF(testPos.x(), testPos.y(), 80, 50)).isEmpty()) {
+                        break; // Nếu trống rồi thì chốt vị trí này, thoát vòng lặp
+                    }
+                }
 
                 centerPos.setX(centerPos.x() + offsetX);
-                centerPos.setY(centerPos.y() + offsetY);
-                
-                // Tăng biến đếm, sinh đủ 25 cổng thì reset lặp lại
-                spawnIndex = (spawnIndex + 1) % 25;
+                centerPos.setY(centerPos.y() + offsetY);;
                 
                 gate->setPos(centerPos);
                 setDocumentDirty(true);
