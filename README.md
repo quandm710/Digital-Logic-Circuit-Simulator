@@ -23,7 +23,7 @@ LOGIC SIMULATOR - CÔNG CỤ MÔ PHỎNG MẠCH LOGIC KỸ THUẬT SỐ
 4. Danh sách nhóm và Phân công công việc
 - Nhóm thực hiện gồm 4 sinh viên.
 - Thành viên || Nhiệm vụ chính
-  + Quan (Nhóm trưởng) || Tạo GUI cơ bản, xử lý File I/O, tổng hợp và testing.
-  + Quý || Xây dựng logic các cổng, xây dựng dây nối và truyền tín hiệu.
-  + Thịnh || Lên ý tưởng (flowchart), tối ưu cửa sổ phần mềm, viết báo cáo.
-  + Sang || Tối ưu giao diện workspace, testing.
+  + Quân     || Tạo GUI cơ bản, xử lý File I/O, tổng hợp và testing.
+  + Quý      || Xây dựng logic các cổng, xây dựng dây nối và truyền tín hiệu giữa các cổng.
+  + Thịnh    || Lên ý tưởng, tạo chức năng, tối ưu cửa sổ phần mềm, viết báo cáo.
+  + Sang     || Tối ưu giao diện, cải tiến workspace, testing.
