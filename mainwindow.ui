@@ -111,7 +111,7 @@
      <x>0</x>
      <y>0</y>
      <width>860</width>
-     <height>21</height>
+     <height>25</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -220,6 +220,9 @@
    <property name="shortcut">
     <string>Ctrl+Z</string>
    </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::PreferencesRole</enum>
+   </property>
   </action>
   <action name="actionRedo">
    <property name="icon">
@@ -232,6 +235,9 @@
    <property name="shortcut">
     <string>Ctrl+Y</string>
    </property>
+   <property name="menuRole">
+    <enum>QAction::MenuRole::PreferencesRole</enum>
+   </property>
   </action>
   <action name="actionZoomIn">
    <property name="icon">
@@ -240,8 +246,11 @@
    <property name="text">
     <string>ZoomIn</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
+    <enum>QAction::MenuRole::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionZoomOut">
@@ -251,8 +260,11 @@
    <property name="text">
     <string>ZoomOut</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
+    <enum>QAction::MenuRole::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionZoomReset">
@@ -262,8 +274,11 @@
    <property name="text">
     <string>ZoomReset</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+P</string>
+   </property>
    <property name="menuRole">
-    <enum>QAction::MenuRole::NoRole</enum>
+    <enum>QAction::MenuRole::PreferencesRole</enum>
    </property>
   </action>
  </widget>
